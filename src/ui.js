@@ -54,6 +54,17 @@ export function renderWords() {
   });
 }
 
+let onStateChangeCallback = null;
+export function registerStateChangeListener(cb) {
+  onStateChangeCallback = cb;
+}
+
+function notifyStateChange() {
+  if (onStateChangeCallback) {
+    onStateChangeCallback();
+  }
+}
+
 // 画面遷移処理
 export function transitionTo(screenName) {
   state.currentScreen = screenName;
@@ -78,6 +89,7 @@ export function transitionTo(screenName) {
       setTimeout(() => elScreenGame.classList.add('active'), 20);
     }, 300);
   }
+  notifyStateChange();
 }
 
 // カテゴリー選択実行
@@ -86,6 +98,7 @@ export function selectCategory(id) {
   state.solvedWords.clear();
   playSuccessSound();
   transitionTo('GAME');
+  // transitionTo が内部で notifyStateChange を呼び出します
 }
 
 // お題選択トグル（他のお題を選択すると、以前の選択は自動解除されます。選択済みのものを再選択しても解除されません）
@@ -100,6 +113,7 @@ export function toggleWordSolved(index) {
   state.solvedWords.add(index);
   playSuccessSound();
   renderWords();
+  notifyStateChange();
 }
 
 // リセット処理
@@ -107,4 +121,5 @@ export function resetCurrentRound() {
   state.solvedWords.clear();
   playBuzzerSound();
   renderWords();
+  notifyStateChange();
 }

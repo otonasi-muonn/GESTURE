@@ -3,6 +3,7 @@ export const state = {
   currentScreen: 'HOME', // 'HOME' | 'GAME'
   activeCategory: null,
   solvedWords: new Set(), // 正解状態（インデックス 0〜9）の保持
+  syncRole: 'loading', // 'sender' | 'viewer' | 'loading'
   
   // ポインター＆ジェスチャー制御（両手分）
   hands: [

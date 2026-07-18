@@ -689,6 +689,43 @@ body {
   margin-top: 16px;
 }
 
+/* Sync Status Badge */
+.sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(12px);
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+  transition: all 0.3s ease;
+}
+
+.sync-badge.loading {
+  border-color: var(--panel-border);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+}
+
+.sync-badge.sender {
+  border-color: rgba(0, 242, 254, 0.4);
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.15);
+  color: var(--neon-cyan);
+}
+
+.sync-badge.viewer {
+  border-color: rgba(254, 1, 154, 0.4);
+  box-shadow: 0 0 10px rgba(254, 1, 154, 0.15);
+  color: var(--neon-magenta);
+}
+
+.sync-badge .sync-icon {
+  font-size: 0.95rem;
+}
+
 /* ==========================================================================
    Responsive adjustments
    ========================================================================== */

@@ -1,8 +1,8 @@
 import { state, elBtnSoundInit, elBtnCameraToggle, elBtnBackManual, elBtnResetRound, elCameraContainer, elCanvas } from './src/state.js';
 import { initAudio } from './src/audio.js';
-import { renderCategories, resetCurrentRound, transitionTo } from './src/ui.js';
+import { renderCategories, resetCurrentRound, transitionTo, registerStateChangeListener, renderWords } from './src/ui.js';
 import { updateCursorSmoothLoop, toggleCameraView } from './src/cursor.js';
-import { initMediaPipe } from './src/gestures.js';
+import { initSync, broadcastState, registerSyncStateReceivedListener } from './src/sync.js';
 
 function initApp() {
   // 初期画面の描画
@@ -27,8 +27,22 @@ function initApp() {
   // スムースカーソルアニメーションループの開始
   updateCursorSmoothLoop();
   
-  // MediaPipe Hands & カメラシステムの起動
-  initMediaPipe();
+  // 送信機側での状態変化時に自動でブロードキャスト
+  registerStateChangeListener(() => {
+    broadcastState();
+  });
+  
+  // 受信機側で同期データを受け取った時の描画処理
+  registerSyncStateReceivedListener((payload) => {
+    if (state.currentScreen !== payload.currentScreen) {
+      transitionTo(payload.currentScreen);
+    } else if (state.currentScreen === 'GAME') {
+      renderWords(); // お題画面ならカードの点灯状態を再描画
+    }
+  });
+  
+  // P2P同期・役割判定の初期化起動（送信機なら内部でカメラ/MediaPipeも起動されます）
+  initSync();
 }
 
 // DOM読み込み完了時にアプリをブートストラップ

@@ -14,6 +14,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
+  <!-- PeerJS P2P Sync Script -->
+  <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -46,6 +49,9 @@
     <header class="app-header">
       <h1 class="logo">Gesture <span class="neon-text">Show!</span></h1>
       <div class="header-controls">
+        <div id="sync-status" class="sync-badge loading">
+          <span class="sync-icon">🔄</span> <span class="sync-text">判定中...</span>
+        </div>
         <button id="btn-sound-init" class="btn-icon glow-hover" title="サウンドを有効化">
           <span class="icon">🔊</span> <span class="label">サウンドON</span>
         </button>
