@@ -19,6 +19,7 @@ export function updateSyncStatus(role, message) {
   
   const elSyncIcon = elSyncStatus.querySelector('.sync-icon');
   const elSyncText = elSyncStatus.querySelector('.sync-text');
+  const elBtnTakeControl = document.getElementById('btn-take-control');
   
   elSyncStatus.className = 'sync-badge';
   
@@ -26,14 +27,18 @@ export function updateSyncStatus(role, message) {
     elSyncStatus.classList.add('sender');
     if (elSyncIcon) elSyncIcon.textContent = '📡';
     if (elSyncText) elSyncText.textContent = `送信機: ${message}`;
+    if (elBtnTakeControl) elBtnTakeControl.classList.add('hidden');
   } else if (role === 'viewer') {
     elSyncStatus.classList.add('viewer');
     if (elSyncIcon) elSyncIcon.textContent = '📱';
     if (elSyncText) elSyncText.textContent = `受信機: ${message}`;
+    // 受信機モードのみ、「操作権をとる」ボタンを表示する
+    if (elBtnTakeControl) elBtnTakeControl.classList.remove('hidden');
   } else {
     elSyncStatus.classList.add('loading');
     if (elSyncIcon) elSyncIcon.textContent = '🔄';
     if (elSyncText) elSyncText.textContent = message;
+    if (elBtnTakeControl) elBtnTakeControl.classList.add('hidden');
   }
 }
 
@@ -55,6 +60,24 @@ export function broadcastState() {
   });
 }
 
+// PeerJSリソースの解放クリーンアップ
+export function destroyPeer() {
+  if (p2pConnection) {
+    try { p2pConnection.close(); } catch(e) {}
+    p2pConnection = null;
+  }
+  
+  activeConnections.forEach(conn => {
+    try { conn.close(); } catch(e) {}
+  });
+  activeConnections = [];
+  
+  if (peer) {
+    try { peer.destroy(); } catch(e) {}
+    peer = null;
+  }
+}
+
 // 役割判定および PeerJS 接続の初期化
 export function initSync() {
   updateSyncStatus('loading', '役割を判定中...');
@@ -70,7 +93,12 @@ export function initSync() {
     console.log('送信機（操作側）として起動成功:', id);
     updateSyncStatus('sender', 'カメラ待機中');
     
-    // 操作側なので、カメラと手形検出を有効化する
+    // 操作側なので、カメラ映像コンテナを表示する
+    if (elCameraContainer) {
+      elCameraContainer.style.display = 'block';
+    }
+    
+    // カメラと手形検出を有効化する
     initMediaPipe();
     
     // 受信機からの接続要求を待ち受ける
@@ -83,6 +111,15 @@ export function initSync() {
       setTimeout(() => {
         broadcastState();
       }, 500);
+      
+      // 受信機からの操作権譲渡要求メッセージを待ち受け
+      conn.on('data', (payload) => {
+        if (payload.type === 'REQUEST_RELEASE_SENDER') {
+          console.log('受信機から操作権の引き渡し要求を受信しました。受信モードに移行します。');
+          destroyPeer();
+          startViewerMode();
+        }
+      });
       
       conn.on('close', () => {
         activeConnections = activeConnections.filter(c => c !== conn);
@@ -108,7 +145,7 @@ export function initSync() {
 }
 
 // 受信機（表示側）モードの起動と送信機への接続
-function startViewerMode() {
+export function startViewerMode() {
   state.syncRole = 'viewer';
   updateSyncStatus('viewer', '送信機を探しています...');
   
@@ -117,7 +154,16 @@ function startViewerMode() {
     elCameraContainer.style.display = 'none';
   }
   if (elWebcam) {
-    elWebcam.srcObject = null;
+    // 起動中のWebカメラがあればストリームを完全に停止してLEDインジケーターを消す
+    if (elWebcam.srcObject) {
+      try {
+        const stream = elWebcam.srcObject;
+        stream.getTracks().forEach(track => track.stop());
+      } catch (e) {
+        console.warn('Failed to stop webcam tracks:', e);
+      }
+      elWebcam.srcObject = null;
+    }
   }
   
   // 受信側はランダムIDでPeerを起動
@@ -172,3 +218,25 @@ function startViewerMode() {
     setTimeout(startViewerMode, 3000);
   });
 }
+
+// モジュール読み込み完了時に操作権譲渡のイベントを設定
+document.addEventListener('DOMContentLoaded', () => {
+  const elBtnTakeControl = document.getElementById('btn-take-control');
+  if (elBtnTakeControl) {
+    elBtnTakeControl.addEventListener('click', (e) => {
+      e.stopPropagation(); // バブリング防止
+      
+      if (p2pConnection && p2pConnection.open) {
+        console.log('現送信機へ操作権リリースを請求します...');
+        updateSyncStatus('viewer', '接続切替中...');
+        p2pConnection.send({ type: 'REQUEST_RELEASE_SENDER' });
+      }
+      
+      // 送信側が切断処理を行うのを少し待ってから、自身を送信機（Master）として再初期化
+      setTimeout(() => {
+        destroyPeer();
+        initSync();
+      }, 600);
+    });
+  }
+});

@@ -51,6 +51,7 @@
       <div class="header-controls">
         <div id="sync-status" class="sync-badge loading">
           <span class="sync-icon">🔄</span> <span class="sync-text">判定中...</span>
+          <button id="btn-take-control" class="btn-take-control hidden">操作権をとる</button>
         </div>
         <button id="btn-sound-init" class="btn-icon glow-hover" title="サウンドを有効化">
           <span class="icon">🔊</span> <span class="label">サウンドON</span>
@@ -87,6 +88,13 @@
 
         <div class="word-grid" id="word-list">
           <!-- JSで動的にお題カードが生成されます -->
+        </div>
+
+        <!-- 受信機（表示側）用の単一回答表示 -->
+        <div id="viewer-active-card" class="viewer-active-panel glass hidden">
+          <div class="viewer-word-display">
+            <span class="pulse-text">ジェスチャー回答を待っています...</span>
+          </div>
         </div>
 
         <div class="action-bar">

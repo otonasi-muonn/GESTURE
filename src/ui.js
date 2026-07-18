@@ -29,29 +29,58 @@ export function renderCategories() {
 export function renderWords() {
   if (!state.activeCategory) return;
   
-  elWordList.innerHTML = '';
   elActiveCategoryTitle.textContent = `${state.activeCategory.icon} ${state.activeCategory.name}`;
   
-  state.activeCategory.words.forEach((word, index) => {
-    const card = document.createElement('div');
-    card.className = 'word-card glow-hover';
-    card.dataset.index = index;
-    if (state.solvedWords.has(index)) {
-      card.classList.add('correct');
+  const elViewerActiveCard = document.getElementById('viewer-active-card');
+  
+  if (state.syncRole === 'viewer') {
+    // 受信機モード: 単一のお題表示
+    elWordList.classList.add('hidden');
+    if (elViewerActiveCard) {
+      elViewerActiveCard.classList.remove('hidden');
+      const elWordDisplay = elViewerActiveCard.querySelector('.viewer-word-display');
+      if (state.solvedWords.size > 0) {
+        const selectedIndex = Array.from(state.solvedWords)[0];
+        const selectedWord = state.activeCategory.words[selectedIndex];
+        elWordDisplay.innerHTML = `
+          <span class="viewer-word-num">${selectedIndex + 1}</span>
+          <span class="viewer-word-text neon-text-green">${selectedWord}</span>
+        `;
+      } else {
+        elWordDisplay.innerHTML = `
+          <span class="pulse-text">ジェスチャー回答を待っています...</span>
+        `;
+      }
+    }
+  } else {
+    // 送信機モード: グリッド表示
+    elWordList.classList.remove('hidden');
+    if (elViewerActiveCard) {
+      elViewerActiveCard.classList.add('hidden');
     }
     
-    card.innerHTML = `
-      <span class="word-num">${index + 1}</span>
-      <span class="word-text">${word}</span>
-    `;
-    
-    // タッチ・マウスクリック時のフォールバック
-    card.addEventListener('click', () => {
-      toggleWordSolved(index);
+    elWordList.innerHTML = '';
+    state.activeCategory.words.forEach((word, index) => {
+      const card = document.createElement('div');
+      card.className = 'word-card glow-hover';
+      card.dataset.index = index;
+      if (state.solvedWords.has(index)) {
+        card.classList.add('correct');
+      }
+      
+      card.innerHTML = `
+        <span class="word-num">${index + 1}</span>
+        <span class="word-text">${word}</span>
+      `;
+      
+      // タッチ・マウスクリック時のフォールバック
+      card.addEventListener('click', () => {
+        toggleWordSolved(index);
+      });
+      
+      elWordList.appendChild(card);
     });
-    
-    elWordList.appendChild(card);
-  });
+  }
 }
 
 let onStateChangeCallback = null;
