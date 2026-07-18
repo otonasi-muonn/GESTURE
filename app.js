@@ -12,6 +12,7 @@ function initApp() {
   elBtnSoundInit.addEventListener('click', initAudio);
   elBtnCameraToggle.addEventListener('click', toggleCameraView);
   elBtnBackManual.addEventListener('click', () => {
+    if (state.syncRole !== 'sender') return;
     transitionTo('HOME');
   });
   elBtnResetRound.addEventListener('click', resetCurrentRound);

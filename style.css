@@ -1,32 +1,22 @@
-/* ==========================================================================
+/* ===========================================================================
    Gesture Show! - Global Styles & Design System
    ========================================================================== */
 
 :root {
-  /* Colors */
   --bg-dark: #0a0813;
   --bg-deep: #05040a;
   --panel-bg: rgba(20, 16, 38, 0.6);
   --panel-border: rgba(255, 255, 255, 0.08);
-  
   --neon-cyan: #00f2fe;
   --neon-magenta: #fe019a;
   --neon-green: #39ff14;
-  --neon-orange: #ff9f1c;
-  
   --text-main: #ffffff;
   --text-muted: #a5a1c0;
-  
-  /* Fonts */
   --font-family: 'Outfit', 'M PLUS Rounded 1c', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  
-  /* Shadows & Glows */
   --shadow-neon-cyan: 0 0 15px rgba(0, 242, 254, 0.4);
   --shadow-neon-magenta: 0 0 15px rgba(254, 1, 154, 0.4);
   --shadow-neon-green: 0 0 15px rgba(57, 255, 20, 0.4);
-  --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  
-  /* Transitions */
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.37);
   --transition-smooth: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
@@ -40,14 +30,14 @@ body {
   font-family: var(--font-family);
   background-color: var(--bg-dark);
   color: var(--text-main);
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   position: relative;
 }
 
 /* Background Glow Effects */
 .bg-glow {
-  position: absolute;
+  position: fixed;
   border-radius: 50%;
   filter: blur(120px);
   z-index: -1;
@@ -60,32 +50,32 @@ body {
   height: 40vw;
   top: -10vw;
   left: -10vw;
-  background: radial-gradient(circle, var(--neon-cyan) 0%, rgba(0,0,0,0) 70%);
+  background: radial-gradient(circle, var(--neon-cyan) 0%, transparent 70%);
 }
 
 .bg-glow-2 {
   width: 45vw;
   height: 45vw;
-  bottom: -15vw;
   right: -10vw;
-  background: radial-gradient(circle, var(--neon-magenta) 0%, rgba(0,0,0,0) 70%);
+  bottom: -15vw;
+  background: radial-gradient(circle, var(--neon-magenta) 0%, transparent 70%);
 }
 
-/* ==========================================================================
+/* ===========================================================================
    Interactive Hand Cursor
    ========================================================================== */
 
 .hand-cursor {
   position: fixed;
+  display: flex;
   width: 36px;
   height: 36px;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
   pointer-events: none;
   z-index: 9999;
   transform: translate(-50%, -50%);
-  display: flex;
-  justify-content: center;
-  align-items: center;
   --cursor-color: var(--neon-cyan);
   --cursor-glow: var(--shadow-neon-cyan);
 }
@@ -113,31 +103,30 @@ body {
 .cursor-dot {
   width: 8px;
   height: 8px;
-  background-color: var(--cursor-color);
   border-radius: 50%;
+  background-color: var(--cursor-color);
   box-shadow: 0 0 5px var(--cursor-color);
   transition: background-color 0.2s ease;
 }
 
-/* Cursor States */
 .hand-cursor.hovering .cursor-ring {
-  transform: scale(1.3);
   border-color: var(--neon-magenta);
   box-shadow: var(--shadow-neon-magenta);
+  transform: scale(1.3);
 }
 
 .hand-cursor.hovering .cursor-dot {
   background-color: var(--neon-magenta);
 }
 
-.hand-cursor.grabbing .cursor-ring {
-  transform: scale(0.8);
+.hand-cursor.selecting .cursor-ring {
   border-color: var(--neon-green);
-  box-shadow: var(--shadow-neon-green);
   border-width: 4px;
+  box-shadow: var(--shadow-neon-green);
+  transform: scale(0.8);
 }
 
-.hand-cursor.grabbing .cursor-dot {
+.hand-cursor.selecting .cursor-dot {
   background-color: var(--neon-green);
   transform: scale(0.5);
 }
@@ -146,39 +135,39 @@ body {
   display: none !important;
 }
 
-/* ==========================================================================
+/* ===========================================================================
    App Structure
    ========================================================================== */
 
 #app {
   position: relative;
-  z-index: 10; /* Float above fullscreen camera background */
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 2vh 3vw;
+  z-index: 10;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  box-sizing: border-box;
-  justify-content: space-between;
+  width: min(100%, 1440px);
+  height: 100dvh;
+  min-height: 0;
+  margin: 0 auto;
+  padding: clamp(10px, 2vh, 22px) clamp(16px, 3vw, 48px);
 }
 
-/* Header */
 .app-header {
   display: flex;
-  justify-content: space-between;
+  flex: 0 0 auto;
   align-items: center;
-  height: 8vh;
-  margin-bottom: 1.5vh;
-  padding-bottom: 1vh;
+  justify-content: space-between;
+  gap: clamp(8px, 1.5vw, 20px);
+  min-height: clamp(42px, 6vh, 64px);
+  margin-bottom: clamp(8px, 1.5vh, 16px);
+  padding-bottom: clamp(6px, 1vh, 10px);
   border-bottom: 1px solid var(--panel-border);
-  flex-shrink: 0;
 }
 
 .logo {
-  font-size: 1.8rem;
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
   font-weight: 900;
   letter-spacing: -0.5px;
+  white-space: nowrap;
 }
 
 .neon-text {
@@ -188,83 +177,84 @@ body {
 
 .header-controls {
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: clamp(6px, 0.9vw, 12px);
 }
 
 /* Buttons */
-.btn, .btn-icon, .btn-back {
-  font-family: var(--font-family);
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  color: var(--text-main);
-  border-radius: 12px;
-  cursor: pointer;
+.btn,
+.btn-icon,
+.btn-back {
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  background: var(--panel-bg);
+  color: var(--text-main);
+  cursor: pointer;
+  font-family: var(--font-family);
   transition: var(--transition-smooth);
   backdrop-filter: blur(10px);
 }
 
 .btn-icon {
-  padding: 1vh 1.2vw;
   gap: 8px;
-  font-size: 0.9rem;
+  padding: clamp(6px, 1vh, 10px) clamp(8px, 1.2vw, 16px);
+  font-size: clamp(0.74rem, 1vw, 0.9rem);
 }
 
 .btn {
-  padding: 1.5vh 2.5vw;
-  font-size: 1.1rem;
+  padding: clamp(8px, 1.2vh, 13px) clamp(16px, 2.5vw, 34px);
+  font-size: clamp(0.85rem, 1.2vw, 1.1rem);
   font-weight: 700;
 }
 
 .btn-back {
-  padding: 1vh 1.2vw;
-  gap: 8px;
-  font-size: 0.9rem;
   align-self: flex-start;
+  gap: 8px;
+  padding: clamp(6px, 1vh, 10px) clamp(8px, 1.2vw, 16px);
+  font-size: clamp(0.76rem, 1vw, 0.9rem);
 }
 
-/* Hover States (Fist selection targets) */
-.glow-hover:hover, 
+.glow-hover:hover,
 .glow-hover.active-hover {
-  background: rgba(255, 255, 255, 0.1);
   border-color: var(--neon-cyan);
+  background: rgba(255, 255, 255, 0.1);
   box-shadow: var(--shadow-neon-cyan);
   transform: translateY(-2px);
 }
 
-/* Glassmorphism Panel base */
 .glass {
-  background: var(--panel-bg);
   border: 1px solid var(--panel-border);
-  backdrop-filter: blur(16px);
   border-radius: 20px;
+  background: var(--panel-bg);
   box-shadow: var(--shadow-card);
+  backdrop-filter: blur(16px);
 }
 
-/* ==========================================================================
+/* ===========================================================================
    Screens Management
    ========================================================================== */
 
 .app-main {
-  flex: 1;
   display: flex;
-  flex-direction: column;
+  flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .screen {
   display: none;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  gap: clamp(8px, 1.4vh, 16px);
   opacity: 0;
   transform: translateY(10px);
   transition: opacity 0.4s ease, transform 0.4s ease;
-  flex-direction: column;
-  gap: 1.5vh;
-  height: 100%;
-  min-height: 0;
-  justify-content: space-between;
 }
 
 .screen.active {
@@ -275,104 +265,91 @@ body {
 
 /* Hero Section */
 .hero-section {
+  flex: 0 0 auto;
   text-align: center;
-  margin-bottom: 24px;
 }
 
 .hero-sub {
+  margin-bottom: clamp(3px, 0.8vh, 8px);
   color: var(--neon-magenta);
-  font-size: 1rem;
+  font-size: clamp(0.68rem, 1.1vw, 1rem);
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  margin-bottom: 8px;
+  letter-spacing: clamp(0.5px, 0.15vw, 2px);
 }
 
 .hero-title {
-  font-size: 2.2rem;
+  font-size: clamp(1.35rem, 2.5vw, 2.2rem);
   font-weight: 900;
-  margin-bottom: 12px;
+  line-height: 1.2;
 }
 
-.guide-text {
-  color: var(--text-muted);
-  font-size: 1rem;
-  max-width: 600px;
-  margin: 0 auto;
-  line-height: 1.5;
-}
-
-.highlight {
-  color: var(--neon-cyan);
-  font-weight: 700;
-  text-shadow: 0 0 5px rgba(0, 242, 254, 0.3);
-}
-
-/* ==========================================================================
-   Category List (Floating / Beautiful Cards)
+/* ===========================================================================
+   Category List
    ========================================================================== */
 
 .category-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr); /* 5 columns for 10 categories */
-  grid-template-rows: repeat(2, 1fr);    /* 2 rows */
-  gap: 16px;
-  height: 55vh; /* Fits screen height perfectly without scrolling */
-  margin-bottom: 2vh;
+  flex: 1 1 auto;
+  min-height: 0;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: clamp(8px, 1.2vw, 16px);
 }
 
 .category-card {
-  height: 100%;
   position: relative;
   display: flex;
+  min-width: 0;
+  min-height: 0;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 16px;
-  border-radius: 20px;
-  cursor: pointer;
   overflow: hidden;
-  background: linear-gradient(135deg, rgba(20, 16, 38, 0.6) 0%, rgba(10, 8, 19, 0.8) 100%);
+  padding: clamp(10px, 1.2vw, 16px);
   border: 1px solid var(--panel-border);
+  border-radius: clamp(14px, 1.5vw, 20px);
+  background: linear-gradient(135deg, rgba(20, 16, 38, 0.6) 0%, rgba(10, 8, 19, 0.8) 100%);
   box-shadow: var(--shadow-card);
+  cursor: pointer;
   transition: var(--transition-smooth);
 }
 
 .category-card::before {
-  content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(0deg, rgba(10, 8, 19, 0.9) 0%, rgba(10, 8, 19, 0) 100%);
+  inset: 0;
   z-index: 1;
+  background: linear-gradient(0deg, rgba(10, 8, 19, 0.9) 0%, transparent 100%);
+  content: '';
 }
 
-/* Color Themes for Category Cards */
-.category-card.cat-0 { --cat-color: #ff3366; } /* Animal */
-.category-card.cat-1 { --cat-color: #33ccff; } /* Job */
-.category-card.cat-2 { --cat-color: #ff9933; } /* Sport */
-.category-card.cat-3 { --cat-color: #33ff99; } /* Daily */
-.category-card.cat-4 { --cat-color: #cc33ff; } /* Emotion */
-.category-card.cat-5 { --cat-color: #ffff33; } /* Funny */
+/* 現在の10カテゴリ: 動物、職業、食べ物、楽器、日用品、スポーツ、美容・健康、IT・ゲーム、キャラクター、乗り物 */
+.category-card.cat-0 { --cat-color: #ff3366; } /* 動物 */
+.category-card.cat-1 { --cat-color: #33ccff; } /* 職業 */
+.category-card.cat-2 { --cat-color: #ff9933; } /* 食べ物（食べる・作る） */
+.category-card.cat-3 { --cat-color: #a970ff; } /* 楽器 */
+.category-card.cat-4 { --cat-color: #39ffb3; } /* 日用品・道具 */
+.category-card.cat-5 { --cat-color: #ffe45c; } /* スポーツ用品 */
+.category-card.cat-6 { --cat-color: #ff7ac6; } /* 美容・健康グッズ */
+.category-card.cat-7 { --cat-color: #4ca6ff; } /* IT・ゲーム関連 */
+.category-card.cat-8 { --cat-color: #b8ff4c; } /* おもしろ系・キャラクター */
+.category-card.cat-9 { --cat-color: #ff815c; } /* 乗り物 */
 
 .category-card .card-glow {
   position: absolute;
   top: -50px;
   right: -50px;
+  z-index: 0;
   width: 150px;
   height: 150px;
   border-radius: 50%;
-  background: radial-gradient(circle, var(--cat-color) 0%, rgba(0,0,0,0) 70%);
+  background: radial-gradient(circle, var(--cat-color) 0%, transparent 70%);
   opacity: 0.15;
   transition: var(--transition-smooth);
-  z-index: 0;
 }
 
 .category-card:hover,
 .category-card.hovered {
   border-color: var(--cat-color);
-  box-shadow: 0 0 20px rgba(var(--cat-color), 0.3);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--cat-color) 30%, transparent);
   transform: translateY(-5px);
 }
 
@@ -382,10 +359,16 @@ body {
   transform: scale(1.2);
 }
 
-.category-card .cat-icon {
-  font-size: 2.2rem;
-  margin-bottom: 12px;
+.category-card .cat-icon,
+.category-card h3,
+.category-card p {
   z-index: 2;
+  min-width: 0;
+}
+
+.category-card .cat-icon {
+  margin-bottom: clamp(4px, 1vh, 12px);
+  font-size: clamp(1.35rem, 2.5vw, 2.2rem);
   transition: transform 0.3s ease;
 }
 
@@ -395,52 +378,56 @@ body {
 }
 
 .category-card h3 {
-  font-size: 1.4rem;
-  font-weight: 900;
-  z-index: 2;
   color: var(--text-main);
-  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  font-size: clamp(0.94rem, 1.45vw, 1.4rem);
+  font-weight: 900;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .category-card p {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  z-index: 2;
   margin-top: 4px;
+  color: var(--text-muted);
+  font-size: clamp(0.67rem, 0.9vw, 0.85rem);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
-/* ==========================================================================
-   Word Grid (Answering Cards)
+/* ===========================================================================
+   Word Grid
    ========================================================================== */
 
 .word-grid {
   display: grid;
-  grid-template-columns: repeat(10, 1fr); /* 10 columns for up to 50 cards */
-  grid-template-rows: repeat(5, 1fr);    /* 5 rows */
-  gap: 8px;
-  height: 70vh; /* Fits screen perfectly without scrolling */
+  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  gap: clamp(5px, 0.65vw, 8px);
 }
 
 .word-card {
-  padding: 6px;
-  border-radius: 12px;
-  text-align: center;
   position: relative;
-  cursor: pointer;
   display: flex;
+  min-width: 0;
+  min-height: 0;
   flex-direction: column;
-  gap: 4px;
-  justify-content: center;
   align-items: center;
-  height: 100%; /* Fill the grid slot */
-  background: var(--panel-bg);
+  justify-content: center;
+  gap: clamp(2px, 0.4vh, 4px);
+  overflow: hidden;
+  padding: clamp(3px, 0.45vw, 6px);
   border: 1px solid var(--panel-border);
+  border-radius: clamp(8px, 0.9vw, 12px);
+  background: var(--panel-bg);
   box-shadow: var(--shadow-card);
+  cursor: pointer;
+  text-align: center;
   transition: var(--transition-smooth);
 }
 
-/* Hovering (hands-free hover) */
 .word-card:hover,
 .word-card.hovered {
   border-color: var(--neon-cyan);
@@ -449,34 +436,37 @@ body {
 }
 
 .word-card .word-num {
-  font-family: 'Outfit', sans-serif;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--neon-magenta);
-  background: rgba(254, 1, 154, 0.1);
-  padding: 2px 10px;
+  flex: 0 0 auto;
+  padding: 2px clamp(5px, 0.7vw, 10px);
   border-radius: 20px;
+  background: rgba(254, 1, 154, 0.1);
+  color: var(--neon-magenta);
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(0.62rem, 0.9vw, 0.9rem);
+  font-weight: 700;
 }
 
 .word-card .word-text {
-  font-size: 0.95rem; /* Small but readable font for fixed grid */
-  font-weight: 700;
+  min-width: 0;
   color: var(--text-main);
+  font-size: clamp(0.64rem, 1vw, 0.95rem);
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
   transition: var(--transition-smooth);
-  word-break: keep-all;
+  word-break: normal;
 }
 
-/* 正解状態：背景色が明確に変わる */
 .word-card.correct {
-  background: linear-gradient(135deg, #1b4d22 0%, #0f3d15 100%) !important;
   border-color: var(--neon-green) !important;
+  background: linear-gradient(135deg, #1b4d22 0%, #0f3d15 100%) !important;
   box-shadow: var(--shadow-neon-green) !important;
   transform: none !important;
 }
 
 .word-card.correct .word-num {
-  color: var(--neon-green);
   background: rgba(57, 255, 20, 0.15);
+  color: var(--neon-green);
 }
 
 .word-card.correct .word-text {
@@ -485,112 +475,28 @@ body {
   text-shadow: 0 0 8px rgba(57, 255, 20, 0.5);
 }
 
-/* ==========================================================================
-   System Panels & HUD
-   ========================================================================== */
-
-.camera-status-panel {
-  max-width: 600px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 1.5vh 2vw;
-  flex-shrink: 0;
-}
-
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid var(--panel-border);
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-}
-
-.panel-header h3 {
-  font-size: 1.1rem;
-}
-
-.badge {
-  font-size: 0.8rem;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 20px;
-}
-
-.badge-off {
-  background: rgba(255, 51, 102, 0.15);
-  color: #ff3366;
-  border: 1px solid rgba(255, 51, 102, 0.3);
-}
-
-.badge-on {
-  background: rgba(57, 255, 20, 0.15);
-  color: var(--neon-green);
-  border: 1px solid rgba(57, 255, 20, 0.3);
-}
-
-#status-message {
-  font-size: 0.95rem;
-  color: var(--text-muted);
-  margin-bottom: 16px;
-}
-
-.gesture-hints {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.hint-item {
-  flex: 1 1 200px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: rgba(0, 0, 0, 0.2);
-  padding: 10px;
-  border-radius: 12px;
-  font-size: 0.85rem;
-}
-
-.gesture-icon {
-  font-size: 1.6rem;
-}
-
-.hint-item div {
-  display: flex;
-  flex-direction: column;
-}
-
-.hint-item strong {
-  color: var(--text-main);
-}
-
-.hint-item span {
-  color: var(--text-muted);
-}
-
-/* ==========================================================================
-   Camera Container (Fullscreen Background Overlay)
+/* ===========================================================================
+   Camera Container & HUD
    ========================================================================== */
 
 .camera-container {
   position: fixed;
   top: 0;
   left: 0;
+  z-index: 1;
   width: 100vw;
-  height: 100vh;
-  z-index: 1; /* In front of body background, behind #app (z-index:10) */
+  height: 100dvh;
   overflow: hidden;
-  pointer-events: none;
   background-color: var(--bg-deep);
+  pointer-events: none;
 }
 
 #webcam {
   width: 100%;
   height: 100%;
+  opacity: 0.4;
   object-fit: cover;
-  transform: scaleX(-1); /* Mirror camera output */
-  opacity: 0.4; /* Default: dimmed background for high readability */
+  transform: scaleX(-1);
   transition: opacity 0.3s ease;
 }
 
@@ -600,89 +506,77 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  transform: scaleX(-1); /* Mirror drawings too */
   pointer-events: none;
+  transform: scaleX(-1);
 }
 
 .camera-indicator {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
-  background: rgba(0,0,0,0.8);
-  padding: 8px 16px;
-  border-radius: 20px;
+  right: clamp(10px, 1.5vw, 24px);
+  bottom: clamp(10px, 1.5vh, 24px);
+  z-index: 1000;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.85rem;
-  z-index: 1000;
+  padding: clamp(6px, 0.9vh, 8px) clamp(10px, 1.2vw, 16px);
   border: 1px solid var(--panel-border);
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  font-size: clamp(0.68rem, 0.9vw, 0.85rem);
   backdrop-filter: blur(10px);
 }
 
 .indicator-dot {
   width: 8px;
   height: 8px;
-  background-color: var(--neon-cyan);
   border-radius: 50%;
+  background-color: var(--neon-cyan);
 }
 
 .indicator-dot.animate-pulse {
   animation: pulse 1.5s infinite;
 }
 
-@keyframes pulse {
-  0% { transform: scale(0.9); opacity: 0.4; }
-  50% { transform: scale(1.2); opacity: 1; }
-  100% { transform: scale(0.9); opacity: 0.4; }
+.camera-indicator.camera-unavailable {
+  border-color: #ff3366;
+  background: rgba(61, 3, 22, 0.92);
+  box-shadow: 0 0 14px rgba(255, 51, 102, 0.35);
+  color: #ff91ad;
 }
 
-/* ==========================================================================
-   HUD Details & Layout
-   ========================================================================== */
+.camera-indicator.camera-unavailable .indicator-dot {
+  background-color: #ff3366;
+  box-shadow: 0 0 8px rgba(255, 51, 102, 0.7);
+  animation: none;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
 
 .game-header {
   display: flex;
-  justify-content: space-between;
+  flex: 0 0 auto;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
+  justify-content: space-between;
+  gap: clamp(8px, 1.2vw, 16px);
+  min-width: 0;
 }
 
 .category-title {
-  font-size: 2rem;
+  min-width: 0;
+  font-size: clamp(1.25rem, 2.2vw, 2rem);
   font-weight: 900;
-}
-
-.game-stats {
-  display: flex;
-  gap: 16px;
-}
-
-.stat-box {
-  padding: 10px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  margin-bottom: 2px;
-}
-
-.stat-value {
-  font-size: 1.6rem;
-  font-weight: 900;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  text-align: right;
 }
 
 .action-bar {
   display: flex;
+  flex: 0 0 auto;
   justify-content: center;
-  margin-top: 16px;
 }
 
 /* Sync Status Badge */
@@ -690,15 +584,16 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--panel-bg);
+  padding: clamp(6px, 0.9vh, 8px) clamp(9px, 1.2vw, 16px);
   border: 1px solid var(--panel-border);
-  backdrop-filter: blur(12px);
-  padding: 8px 16px;
   border-radius: 12px;
-  font-size: 0.85rem;
-  font-weight: 700;
+  background: var(--panel-bg);
   color: var(--text-main);
+  font-size: clamp(0.7rem, 0.9vw, 0.85rem);
+  font-weight: 700;
+  pointer-events: auto;
   transition: all 0.3s ease;
+  backdrop-filter: blur(12px);
 }
 
 .sync-badge.loading {
@@ -722,27 +617,22 @@ body {
   font-size: 0.95rem;
 }
 
-.sync-badge {
-  pointer-events: auto;
-}
-
-/* Takeover Button inside Sync Status Badge */
 .btn-take-control {
-  background: rgba(254, 1, 154, 0.2);
-  border: 1px solid rgba(254, 1, 154, 0.4);
-  color: #fff;
-  border-radius: 6px;
+  margin-left: clamp(4px, 0.7vw, 10px);
   padding: 2px 8px;
+  border: 1px solid rgba(254, 1, 154, 0.4);
+  border-radius: 6px;
+  background: rgba(254, 1, 154, 0.2);
+  color: #fff;
+  cursor: pointer;
   font-size: 0.75rem;
   font-weight: 700;
-  cursor: pointer;
-  margin-left: 10px;
   transition: all 0.2s ease;
 }
 
 .btn-take-control:hover {
-  background: var(--neon-magenta);
   border-color: var(--neon-magenta);
+  background: var(--neon-magenta);
   box-shadow: var(--shadow-neon-magenta);
   transform: translateY(-1px);
 }
@@ -750,50 +640,57 @@ body {
 /* Viewer Active Single Word Panel */
 .viewer-active-panel {
   display: flex;
-  justify-content: center;
+  flex: 1 1 auto;
+  min-height: 0;
   align-items: center;
-  height: 65vh;
-  margin: 2vh 0;
-  padding: 40px;
+  justify-content: center;
+  padding: clamp(20px, 5vw, 56px);
   border-radius: 24px;
   text-align: center;
 }
 
 .viewer-word-display {
   display: flex;
+  min-width: 0;
+  max-width: 100%;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 20px;
+  gap: clamp(10px, 2vh, 20px);
 }
 
 .viewer-word-num {
-  font-family: 'Outfit', sans-serif;
-  font-size: 2rem;
-  font-weight: 900;
-  color: var(--neon-magenta);
-  background: rgba(254, 1, 154, 0.1);
-  padding: 6px 20px;
-  border-radius: 30px;
+  padding: 6px clamp(12px, 2vw, 20px);
   border: 1px solid rgba(254, 1, 154, 0.3);
+  border-radius: 30px;
+  background: rgba(254, 1, 154, 0.1);
+  color: var(--neon-magenta);
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(1.25rem, 3vw, 2rem);
+  font-weight: 900;
   text-shadow: 0 0 10px rgba(254, 1, 154, 0.3);
 }
 
 .viewer-word-text {
-  font-size: 5rem;
-  font-weight: 900;
+  max-width: 100%;
   color: var(--text-main);
-  letter-spacing: 2px;
+  font-size: clamp(2rem, 8vw, 5rem);
+  font-weight: 900;
+  letter-spacing: clamp(0.5px, 0.15vw, 2px);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .viewer-word-text.neon-text-green {
-  color: #39ff14;
+  color: var(--neon-green);
   text-shadow: 0 0 20px rgba(57, 255, 20, 0.6), 0 0 40px rgba(57, 255, 20, 0.3);
 }
 
 .pulse-text {
-  font-size: 2rem;
   color: var(--text-muted);
+  font-size: clamp(1.2rem, 3vw, 2rem);
+  line-height: 1.35;
   animation: pulse-slow 2s infinite ease-in-out;
 }
 
@@ -802,49 +699,112 @@ body {
   50% { opacity: 1; }
 }
 
-/* ==========================================================================
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+  }
+
+  .bg-glow,
+  .indicator-dot.animate-pulse,
+  .pulse-text {
+    animation: none !important;
+  }
+
+  .hand-cursor.hovering .cursor-ring,
+  .hand-cursor.selecting .cursor-ring,
+  .hand-cursor.selecting .cursor-dot,
+  .glow-hover:hover,
+  .glow-hover.active-hover,
+  .category-card:hover,
+  .category-card.hovered,
+  .category-card:hover .card-glow,
+  .category-card.hovered .card-glow,
+  .category-card:hover .cat-icon,
+  .category-card.hovered .cat-icon,
+  .word-card:hover,
+  .word-card.hovered,
+  .btn-take-control:hover {
+    transform: none;
+  }
+}
+
+/* ===========================================================================
    Responsive adjustments
    ========================================================================== */
 
 @media (max-width: 768px) {
+  body {
+    height: auto;
+    min-height: 100dvh;
+    overflow-y: auto;
+  }
+
   #app {
+    height: auto;
+    min-height: 100dvh;
     padding: 16px;
   }
-  
+
   .app-header {
-    flex-direction: column;
-    gap: 16px;
     align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
   }
-  
-  .logo {
-    font-size: 1.6rem;
+
+  .header-controls {
+    width: 100%;
+    justify-content: flex-start;
   }
-  
-  .hero-title {
-    font-size: 1.6rem;
+
+  .app-main {
+    overflow: visible;
   }
-  
+
+  .screen,
+  .screen.active {
+    flex: 0 0 auto;
+    min-height: auto;
+  }
+
   .category-grid {
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: auto;
-    height: auto;
+    flex: 0 0 auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: none;
   }
-  
+
+  .category-card {
+    min-height: 132px;
+  }
+
   .word-grid {
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: auto;
-    height: auto;
+    flex: 0 0 auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: none;
   }
-  
+
+  .word-card {
+    min-height: 78px;
+  }
+
+  .game-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .category-title {
+    text-align: left;
+  }
+
+  .viewer-active-panel {
+    flex: 0 0 auto;
+    min-height: min(58dvh, 500px);
+  }
+
   .camera-indicator {
-    bottom: 12px;
-    right: 12px;
-    padding: 6px 12px;
-    font-size: 0.75rem;
-  }
-  
-  .viewer-word-text {
-    font-size: 3rem;
+    max-width: calc(100vw - 24px);
   }
 }

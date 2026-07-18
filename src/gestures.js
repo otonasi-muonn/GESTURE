@@ -1,29 +1,33 @@
-import { state, elWebcam, elCanvas, ctx, elHandsDetectedText, elCameraContainer } from './state.js';
+import { state, elWebcam, elCanvas, ctx, elHandsDetectedText } from './state.js';
 import { playClapSound } from './audio.js';
 import { transitionTo } from './ui.js';
+import { processGestureSelection } from './cursor.js';
+import { detectFingerPoses, nextBackGestureState } from './gesture-rules.js';
 
-// 指の起立状態チェック
-// y座標は上方向が0、下方向が1。 tip.y < pip.y であれば、指先が関節より「上」にある ＝ 伸びている
-export function isFingerExtended(landmarks, tipIdx, pipIdx) {
-  return landmarks[tipIdx].y < landmarks[pipIdx].y;
+let activeMediaPipe = null;
+let mediaPipeLifecycleQueue = Promise.resolve();
+
+function resetHandState(handState, handIndex) {
+  handState.hoveredElement?.classList.remove('hovered');
+  handState.cursor.x = 0;
+  handState.cursor.y = 0;
+  handState.targetCursor.x = 0;
+  handState.targetCursor.y = 0;
+  handState.isDetected = false;
+  handState.hoveredElement = null;
+  handState.isSelectPose = false;
+  handState.isBackPose = false;
+  document.getElementById(`hand-cursor-${handIndex}`)?.classList.remove('hovering', 'selecting');
+  document.getElementById(`hand-cursor-${handIndex}`)?.classList.add('hidden');
 }
 
-// 親指の起立状態チェック
-export function isThumbExtended(landmarks, handLabel) {
-  const tip = landmarks[4];
-  const mcp = landmarks[2];
-  const distHorizontal = Math.abs(tip.x - mcp.x);
-  return distHorizontal > 0.05; // 簡易判定しきい値
+function setCameraUnavailable() {
+  elHandsDetectedText.textContent = 'カメラ利用不可（マウス／タッチ操作可）';
+  elHandsDetectedText.closest('.camera-indicator')?.classList.add('camera-unavailable');
 }
 
-export function detectFist(landmarks, handLabel) {
-  // 4本指（人差し指、中指、薬指、小指）の折りたたみ状態を確認
-  const indexFolded = landmarks[8].y > landmarks[6].y;
-  const middleFolded = landmarks[12].y > landmarks[10].y;
-  const ringFolded = landmarks[16].y > landmarks[14].y;
-  const pinkyFolded = landmarks[20].y > landmarks[18].y;
-  
-  return indexFolded && middleFolded && ringFolded && pinkyFolded;
+function clearCameraUnavailable() {
+  elHandsDetectedText.closest('.camera-indicator')?.classList.remove('camera-unavailable');
 }
 
 // MediaPipe 検出処理
@@ -32,47 +36,44 @@ export function onResults(results) {
   
   const numHands = results.multiHandLandmarks ? results.multiHandLandmarks.length : 0;
   
-  state.hands[0].isDetected = false;
-  state.hands[1].isDetected = false;
+  const detectedHands = results.multiHandLandmarks?.slice(0, state.hands.length) ?? [];
+  const poses = detectedHands.map(detectFingerPoses);
+
+  state.hands.forEach((handState, index) => {
+    handState.isDetected = false;
+    handState.isSelectPose = poses[index]?.isSelectPose ?? false;
+    handState.isBackPose = poses[index]?.isBackPose ?? false;
+  });
+
+  const isAnyBackPose = poses.some((pose) => pose.isBackPose);
+  const backGesture = nextBackGestureState(state.backGestureLatched, isAnyBackPose);
+  state.backGestureLatched = backGesture.isLatched;
   
   if (numHands > 0) {
     state.isHandDetected = true;
     elHandsDetectedText.textContent = `手検出中: ${numHands}個`;
     
-    // 両手合わせ（クラップ・合掌）による「戻る」検出
-    if (state.currentScreen === 'GAME' && numHands >= 2) {
-      const hand0_center = results.multiHandLandmarks[0][9];
-      const hand1_center = results.multiHandLandmarks[1][9];
-      
-      const dx = hand0_center.x - hand1_center.x;
-      const dy = hand0_center.y - hand1_center.y;
-      const dz = hand0_center.z - hand1_center.z;
-      const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
-      
-      const now = Date.now();
-      if (distance < 0.08 && (now - state.lastClapTime > 1500)) {
-        state.lastClapTime = now;
-        playClapSound();
-        transitionTo('HOME');
-        return;
-      }
+    if (backGesture.shouldTrigger && state.syncRole === 'sender' && state.currentScreen === 'GAME') {
+      playClapSound();
+      transitionTo('HOME');
     }
     
     // 検出された全ての手（最大2つ）を処理
     for (let i = 0; i < Math.min(2, numHands); i++) {
       const landmarks = results.multiHandLandmarks[i];
-      const handMeta = results.multiHandedness[i];
-      const handLabel = handMeta.label;
-      
       const handState = state.hands[i];
       handState.isDetected = true;
       
-      const pointerJoint = landmarks[9];
+      const pointerJoint = landmarks[8];
       handState.targetCursor.x = (1 - pointerJoint.x) * window.innerWidth;
       handState.targetCursor.y = pointerJoint.y * window.innerHeight;
-      
-      handState.isFistActive = detectFist(landmarks, handLabel);
-      drawHandSkeleton(landmarks, i, handState.isFistActive);
+
+      const isActionPose = handState.isSelectPose || handState.isBackPose;
+      drawHandSkeleton(landmarks, i, isActionPose);
+
+      if (state.syncRole === 'sender' && !isAnyBackPose && handState.isSelectPose) {
+        processGestureSelection(i);
+      }
     }
   } else {
     state.isHandDetected = false;
@@ -81,7 +82,7 @@ export function onResults(results) {
 }
 
 // ネオン骨格の描画
-export function drawHandSkeleton(landmarks, handIdx, isFistActive) {
+export function drawHandSkeleton(landmarks, handIdx, isActionPose) {
   const connections = [
     [0, 1], [1, 2], [2, 3], [3, 4], // 親指
     [0, 5], [5, 6], [6, 7], [7, 8], // 人差し指
@@ -98,7 +99,7 @@ export function drawHandSkeleton(landmarks, handIdx, isFistActive) {
   if (handIdx === 1) {
     strokeColor = '#fe019a';
   }
-  if (isFistActive) {
+  if (isActionPose) {
     strokeColor = '#39ff14';
   }
   
@@ -125,33 +126,149 @@ export function drawHandSkeleton(landmarks, handIdx, isFistActive) {
   }
 }
 
-export function initMediaPipe() {
-  const hands = new Hands({
-    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-  });
-  
-  hands.setOptions({
-    maxNumHands: 2,
-    modelComplexity: 1,
-    minDetectionConfidence: 0.6,
-    minTrackingConfidence: 0.6
-  });
-  
-  hands.onResults(onResults);
-  
-  const camera = new Camera(elWebcam, {
-    onFrame: async () => {
-      await hands.send({ image: elWebcam });
-    },
-    width: 640,
-    height: 480
-  });
-  
-  camera.start()
-    .then(() => {
-      console.log('Camera started successfully.');
-    })
-    .catch((err) => {
-      console.error('Camera startup failed', err);
+function enqueueMediaPipeLifecycle(operation) {
+  const nextOperation = mediaPipeLifecycleQueue.then(operation, operation);
+  mediaPipeLifecycleQueue = nextOperation.catch(() => undefined);
+  return nextOperation;
+}
+
+function resetMediaPipeUi() {
+  state.hands.forEach(resetHandState);
+  state.isHandDetected = false;
+  state.backGestureLatched = false;
+  elHandsDetectedText.textContent = '手が見つかりません';
+  clearCameraUnavailable();
+  ctx.clearRect(0, 0, elCanvas.width, elCanvas.height);
+}
+
+async function safelyStopResource(stop, label) {
+  if (!stop) return;
+  try {
+    await stop();
+  } catch (error) {
+    console.warn(`${label} cleanup failed`, error);
+  }
+}
+
+function stopVideoTracks(video = elWebcam) {
+  if (!video) return;
+  const stream = video.srcObject;
+  if (stream?.getTracks) {
+    stream.getTracks().forEach((track) => {
+      try {
+        track.stop();
+      } catch (error) {
+        console.warn('Camera track cleanup failed', error);
+      }
     });
+  }
+  video.srcObject = null;
+}
+
+async function stopActiveMediaPipe() {
+  const active = activeMediaPipe;
+  if (!active) {
+    resetMediaPipeUi();
+    return;
+  }
+
+  active.stopping = true;
+  activeMediaPipe = null;
+
+  const ownedStream = active.video.srcObject;
+  const startWasPending = !active.startSettled;
+  await safelyStopResource(active.camera.stop?.bind(active.camera), 'Camera');
+  stopVideoTracks(active.video);
+  if (startWasPending) {
+    active.startPromise.then(
+      () => safelyStopResource(active.camera.stop?.bind(active.camera), 'Camera'),
+      () => undefined
+    );
+  }
+  if (elWebcam.srcObject === ownedStream) {
+    elWebcam.srcObject = null;
+  } else {
+    stopVideoTracks();
+  }
+  await safelyStopResource(active.hands.close?.bind(active.hands), 'Hands');
+  resetMediaPipeUi();
+}
+
+function enqueueFailedMediaPipeCleanup(active) {
+  void enqueueMediaPipeLifecycle(async () => {
+    if (activeMediaPipe !== active || active.stopping) return;
+    await stopActiveMediaPipe();
+    setCameraUnavailable();
+  });
+}
+
+export function initMediaPipe() {
+  return enqueueMediaPipeLifecycle(async () => {
+    await stopActiveMediaPipe();
+
+    let hands = null;
+    let camera = null;
+    let cameraVideo = null;
+    try {
+      hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`
+      });
+      hands.setOptions({
+        maxNumHands: 2,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.6,
+        minTrackingConfidence: 0.6
+      });
+      hands.onResults(onResults);
+
+      cameraVideo = document.createElement('video');
+      cameraVideo.autoplay = true;
+      cameraVideo.playsInline = true;
+      cameraVideo.muted = true;
+
+      let active = null;
+      camera = new Camera(cameraVideo, {
+        onFrame: async () => {
+          if (!active || activeMediaPipe !== active || active.stopping) return;
+          await hands.send({ image: cameraVideo });
+        },
+        width: 640,
+        height: 480
+      });
+      active = { hands, camera, video: cameraVideo, startPromise: null, startSettled: false, stopping: false };
+      activeMediaPipe = active;
+      active.startPromise = Promise.resolve().then(() => camera.start());
+      active.startPromise.then(
+        () => {
+          active.startSettled = true;
+          if (activeMediaPipe === active && !active.stopping) {
+            stopVideoTracks();
+            elWebcam.srcObject = cameraVideo.srcObject;
+            clearCameraUnavailable();
+            console.log('Camera started successfully.');
+          }
+        },
+        (error) => {
+          active.startSettled = true;
+          if (activeMediaPipe === active && !active.stopping) {
+            setCameraUnavailable();
+            console.error('Camera startup failed', error);
+            enqueueFailedMediaPipeCleanup(active);
+          }
+        }
+      );
+    } catch (error) {
+      await safelyStopResource(camera?.stop?.bind(camera), 'Camera');
+      stopVideoTracks(cameraVideo);
+      stopVideoTracks();
+      await safelyStopResource(hands?.close?.bind(hands), 'Hands');
+      resetMediaPipeUi();
+      setCameraUnavailable();
+      console.error('Camera startup failed', error);
+    }
+  });
+}
+
+export function stopMediaPipe() {
+  return enqueueMediaPipeLifecycle(stopActiveMediaPipe);
 }
