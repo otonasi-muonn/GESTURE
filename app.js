@@ -219,8 +219,10 @@ function updateScoreUI() {
 // 画面遷移処理
 function transitionTo(screenName) {
   state.currentScreen = screenName;
-  state.fistProgress = 0;
-  state.fistStartTime = null;
+  state.hands.forEach(h => {
+    h.fistProgress = 0;
+    h.fistStartTime = null;
+  });
   
   if (screenName === 'HOME') {
     elScreenGame.classList.remove('active');
@@ -274,35 +276,39 @@ function resetCurrentRound() {
 
 // ポインター位置の物理スクリーンスムージング(Lerp)ループ
 function updateCursorSmoothLoop() {
-  // スムージング係数
   const lerpFactor = 0.25;
-  state.cursor.x += (state.targetCursor.x - state.cursor.x) * lerpFactor;
-  state.cursor.y += (state.targetCursor.y - state.cursor.y) * lerpFactor;
   
-  // カーソル要素の位置更新
-  elCursor.style.left = `${state.cursor.x}px`;
-  elCursor.style.top = `${state.cursor.y}px`;
-  
-  // 手が検出されている時のみカーソルを表示
-  if (state.isHandDetected) {
-    elCursor.classList.remove('hidden');
-  } else {
-    elCursor.classList.add('hidden');
-    clearHoverStates();
-  }
-  
-  // ホバーしている要素の走査と決定（グー）進行度の処理
-  if (state.isHandDetected) {
-    processHoverAndGrab();
+  for (let i = 0; i < 2; i++) {
+    const hand = state.hands[i];
+    const elCursor = document.getElementById(`hand-cursor-${i}`);
+    
+    if (!elCursor) continue;
+    
+    // スムージング
+    hand.cursor.x += (hand.targetCursor.x - hand.cursor.x) * lerpFactor;
+    hand.cursor.y += (hand.targetCursor.y - hand.cursor.y) * lerpFactor;
+    
+    // カーソル要素の位置更新
+    elCursor.style.left = `${hand.cursor.x}px`;
+    elCursor.style.top = `${hand.cursor.y}px`;
+    
+    // 手が検出されている時のみカーソルを表示
+    if (hand.isDetected) {
+      elCursor.classList.remove('hidden');
+      processHoverAndGrab(i, elCursor);
+    } else {
+      elCursor.classList.add('hidden');
+      clearHoverStates(i, elCursor);
+    }
   }
   
   requestAnimationFrame(updateCursorSmoothLoop);
 }
 
 // ホバー要素とグー選択判定のメイン処理
-function processHoverAndGrab() {
-  // ポインター座標の直下にあるインタラクティブ要素を検出
-  const target = document.elementFromPoint(state.cursor.x, state.cursor.y);
+function processHoverAndGrab(handIdx, elCursor) {
+  const hand = state.hands[handIdx];
+  const target = document.elementFromPoint(hand.cursor.x, hand.cursor.y);
   let interactiveEl = null;
   
   if (target) {
@@ -311,60 +317,68 @@ function processHoverAndGrab() {
   
   if (interactiveEl) {
     // 新しい要素にホバーした場合
-    if (state.hoveredElement !== interactiveEl) {
-      clearHoverStates();
-      state.hoveredElement = interactiveEl;
-      state.hoveredElement.classList.add('hovered');
+    if (hand.hoveredElement !== interactiveEl) {
+      clearHoverStates(handIdx, elCursor);
+      hand.hoveredElement = interactiveEl;
+      hand.hoveredElement.classList.add('hovered');
       playHoverSound();
-      state.fistProgress = 0;
-      state.fistStartTime = null;
+      hand.fistProgress = 0;
+      hand.fistStartTime = null;
       elCursor.classList.add('hovering');
     }
     
     // ホバー中に「グー」である場合の処理
-    if (state.isFistActive) {
+    if (hand.isFistActive) {
       elCursor.classList.add('grabbing');
       elCursor.classList.add('loading');
       
-      if (state.fistStartTime === null) {
-        state.fistStartTime = performance.now();
+      if (hand.fistStartTime === null) {
+        hand.fistStartTime = performance.now();
       }
       
       // 0.5秒のホールドで確定
-      const elapsed = (performance.now() - state.fistStartTime) / 1000;
-      state.fistProgress = Math.min(1.0, elapsed / 0.5);
+      const elapsed = (performance.now() - hand.fistStartTime) / 1000;
+      hand.fistProgress = Math.min(1.0, elapsed / 0.5);
       
       // カーソルサイズを収縮させ、CSS変数に反映して視覚化
-      const progressPercent = Math.min(100, state.fistProgress * 100);
+      const progressPercent = Math.min(100, hand.fistProgress * 100);
       elCursor.style.setProperty('--grab-progress', `${progressPercent}%`);
       
       // 確定トリガー
-      if (state.fistProgress >= 1.0) {
-        triggerSelectAction(state.hoveredElement);
-        state.fistProgress = 0;
-        state.fistStartTime = null;
+      if (hand.fistProgress >= 1.0) {
+        triggerSelectAction(hand.hoveredElement);
+        hand.fistProgress = 0;
+        hand.fistStartTime = null;
         elCursor.classList.remove('loading');
       }
     } else {
       // グーを解いた場合
       elCursor.classList.remove('grabbing', 'loading');
-      state.fistProgress = 0;
-      state.fistStartTime = null;
+      hand.fistProgress = 0;
+      hand.fistStartTime = null;
     }
   } else {
     // インタラクティブ要素から外れた場合
-    clearHoverStates();
+    clearHoverStates(handIdx, elCursor);
   }
 }
 
-function clearHoverStates() {
-  if (state.hoveredElement) {
-    state.hoveredElement.classList.remove('hovered');
-    state.hoveredElement = null;
+function clearHoverStates(handIdx, elCursor) {
+  const hand = state.hands[handIdx];
+  if (hand.hoveredElement) {
+    // 他の手が同じ要素をホバーしていない場合のみ、ホバー表示クラスを消す
+    const otherHandIdx = handIdx === 0 ? 1 : 0;
+    const otherHand = state.hands[otherHandIdx];
+    if (otherHand.hoveredElement !== hand.hoveredElement) {
+      hand.hoveredElement.classList.remove('hovered');
+    }
+    hand.hoveredElement = null;
   }
-  elCursor.classList.remove('hovering', 'grabbing', 'loading');
-  state.fistProgress = 0;
-  state.fistStartTime = null;
+  if (elCursor) {
+    elCursor.classList.remove('hovering', 'grabbing', 'loading');
+  }
+  hand.fistProgress = 0;
+  hand.fistStartTime = null;
 }
 
 // ジェスチャーによって選択された要素のクリック疑似発火
@@ -453,6 +467,10 @@ function onResults(results) {
   // 検出された手の数
   const numHands = results.multiHandLandmarks ? results.multiHandLandmarks.length : 0;
   
+  // 両手とも一旦非検出にしてから再設定
+  state.hands[0].isDetected = false;
+  state.hands[1].isDetected = false;
+  
   if (numHands > 0) {
     state.isHandDetected = true;
     elHandsDetectedText.textContent = `手検出中: ${numHands}個`;
@@ -478,34 +496,37 @@ function onResults(results) {
       }
     }
     
-    // ポインター制御には、検出された「最初の片手」を使用
-    const landmarks = results.multiHandLandmarks[0];
-    const handMeta = results.multiHandedness[0]; // Left か Right か
-    const handLabel = handMeta.label; // "Left" or "Right"
-    
-    // ポインター位置の決定: 中指の付け根(Landmark 9)が物理的に安定していて良い
-    const pointerJoint = landmarks[9];
-    
-    // 鏡像カメラなので、横座標(x)を反転させて画面幅にマッピング
-    // x: 0.0 (左端) 〜 1.0 (右端)
-    state.targetCursor.x = (1 - pointerJoint.x) * window.innerWidth;
-    state.targetCursor.y = pointerJoint.y * window.innerHeight;
-    
-    // 「グー」のジェスチャー判定
-    state.isFistActive = detectFist(landmarks, handLabel);
-    
-    // キャンバスに骨格を描画 (ネオン風)
-    drawHandSkeleton(landmarks);
-    
+    // 検出された全ての手（最大2つ）を処理
+    for (let i = 0; i < Math.min(2, numHands); i++) {
+      const landmarks = results.multiHandLandmarks[i];
+      const handMeta = results.multiHandedness[i];
+      const handLabel = handMeta.label; // "Left" or "Right"
+      
+      const handState = state.hands[i];
+      handState.isDetected = true;
+      
+      // ポインター位置の決定: 中指の付け根(Landmark 9)が物理的に安定していて良い
+      const pointerJoint = landmarks[9];
+      
+      // 鏡像カメラなので、横座標(x)を反転させて画面幅にマッピング
+      // x: 0.0 (左端) 〜 1.0 (右端)
+      handState.targetCursor.x = (1 - pointerJoint.x) * window.innerWidth;
+      handState.targetCursor.y = pointerJoint.y * window.innerHeight;
+      
+      // 「グー」のジェスチャー判定
+      handState.isFistActive = detectFist(landmarks, handLabel);
+      
+      // キャンバスに骨格を描画
+      drawHandSkeleton(landmarks, i, handState.isFistActive);
+    }
   } else {
     state.isHandDetected = false;
-    state.isFistActive = false;
     elHandsDetectedText.textContent = '手が見つかりません';
   }
 }
 
 // ネオン骨格の描画
-function drawHandSkeleton(landmarks) {
+function drawHandSkeleton(landmarks, handIdx, isFistActive) {
   // 接続関節リスト
   const connections = [
     [0, 1], [1, 2], [2, 3], [3, 4], // 親指
@@ -520,7 +541,15 @@ function drawHandSkeleton(landmarks) {
   const h = elCanvas.height;
   
   // 関節をつなぐ線を描画
-  ctx.strokeStyle = state.isFistActive ? '#39ff14' : '#00f2fe'; // グーなら緑、通常はシアン
+  let strokeColor = '#00f2fe'; // 1本目の手: シアン
+  if (handIdx === 1) {
+    strokeColor = '#fe019a'; // 2本目の手: マゼンタ
+  }
+  if (isFistActive) {
+    strokeColor = '#39ff14'; // グーなら蛍光緑
+  }
+  
+  ctx.strokeStyle = strokeColor;
   ctx.lineWidth = 4;
   ctx.shadowBlur = 10;
   ctx.shadowColor = ctx.strokeStyle;
