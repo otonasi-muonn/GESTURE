@@ -3,8 +3,6 @@ import { playClapSound } from './audio.js';
 import { transitionTo } from './ui.js';
 import { detectFistByDistance, nextFistState } from './gesture-rules.js';
 
-let mediaPipeHands = null;
-let mediaPipeCamera = null;
 let activeMediaPipe = null;
 let mediaPipeLifecycleQueue = Promise.resolve();
 
@@ -59,7 +57,7 @@ export function onResults(results) {
     elHandsDetectedText.textContent = `手検出中: ${numHands}個`;
     
     // 両手合わせ（クラップ・合掌）による「戻る」検出
-    if (state.syncRole !== 'viewer' && state.currentScreen === 'GAME' && numHands >= 2) {
+    if (state.syncRole === 'sender' && state.currentScreen === 'GAME' && numHands >= 2) {
       const hand0_center = results.multiHandLandmarks[0][9];
       const hand1_center = results.multiHandLandmarks[1][9];
       
@@ -164,8 +162,9 @@ async function safelyStopResource(stop, label) {
   }
 }
 
-function stopVideoTracks() {
-  const stream = elWebcam.srcObject;
+function stopVideoTracks(video = elWebcam) {
+  if (!video) return;
+  const stream = video.srcObject;
   if (stream?.getTracks) {
     stream.getTracks().forEach((track) => {
       try {
@@ -175,7 +174,7 @@ function stopVideoTracks() {
       }
     });
   }
-  elWebcam.srcObject = null;
+  video.srcObject = null;
 }
 
 async function stopActiveMediaPipe() {
@@ -187,18 +186,32 @@ async function stopActiveMediaPipe() {
 
   active.stopping = true;
   activeMediaPipe = null;
-  if (mediaPipeCamera === active.camera) mediaPipeCamera = null;
-  if (mediaPipeHands === active.hands) mediaPipeHands = null;
 
+  const ownedStream = active.video.srcObject;
   const startWasPending = !active.startSettled;
   await safelyStopResource(active.camera.stop?.bind(active.camera), 'Camera');
-  await active.startPromise.catch(() => undefined);
+  stopVideoTracks(active.video);
   if (startWasPending) {
-    await safelyStopResource(active.camera.stop?.bind(active.camera), 'Camera');
+    active.startPromise.then(
+      () => safelyStopResource(active.camera.stop?.bind(active.camera), 'Camera'),
+      () => undefined
+    );
   }
-  stopVideoTracks();
+  if (elWebcam.srcObject === ownedStream) {
+    elWebcam.srcObject = null;
+  } else {
+    stopVideoTracks();
+  }
   await safelyStopResource(active.hands.close?.bind(active.hands), 'Hands');
   resetMediaPipeUi();
+}
+
+function enqueueFailedMediaPipeCleanup(active) {
+  void enqueueMediaPipeLifecycle(async () => {
+    if (activeMediaPipe !== active || active.stopping) return;
+    await stopActiveMediaPipe();
+    setCameraUnavailable();
+  });
 }
 
 export function initMediaPipe() {
@@ -207,6 +220,7 @@ export function initMediaPipe() {
 
     let hands = null;
     let camera = null;
+    let cameraVideo = null;
     try {
       hands = new Hands({
         locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`
@@ -219,22 +233,29 @@ export function initMediaPipe() {
       });
       hands.onResults(onResults);
 
-      camera = new Camera(elWebcam, {
+      cameraVideo = document.createElement('video');
+      cameraVideo.autoplay = true;
+      cameraVideo.playsInline = true;
+      cameraVideo.muted = true;
+
+      let active = null;
+      camera = new Camera(cameraVideo, {
         onFrame: async () => {
-          await hands.send({ image: elWebcam });
+          if (!active || activeMediaPipe !== active || active.stopping) return;
+          await hands.send({ image: cameraVideo });
         },
         width: 640,
         height: 480
       });
-      const active = { hands, camera, startPromise: null, startSettled: false, stopping: false };
+      active = { hands, camera, video: cameraVideo, startPromise: null, startSettled: false, stopping: false };
       activeMediaPipe = active;
-      mediaPipeHands = hands;
-      mediaPipeCamera = camera;
       active.startPromise = Promise.resolve().then(() => camera.start());
       active.startPromise.then(
         () => {
           active.startSettled = true;
           if (activeMediaPipe === active && !active.stopping) {
+            stopVideoTracks();
+            elWebcam.srcObject = cameraVideo.srcObject;
             clearCameraUnavailable();
             console.log('Camera started successfully.');
           }
@@ -244,11 +265,13 @@ export function initMediaPipe() {
           if (activeMediaPipe === active && !active.stopping) {
             setCameraUnavailable();
             console.error('Camera startup failed', error);
+            enqueueFailedMediaPipeCleanup(active);
           }
         }
       );
     } catch (error) {
       await safelyStopResource(camera?.stop?.bind(camera), 'Camera');
+      stopVideoTracks(cameraVideo);
       stopVideoTracks();
       await safelyStopResource(hands?.close?.bind(hands), 'Hands');
       resetMediaPipeUi();

@@ -221,6 +221,25 @@ test('claim 開始時の destroy が発火する旧 close/error を無視して�
   assert.equal(fixture.timers.size, 0);
 });
 
+test('sender は不正な data を無視した後も正規の release 要求を処理する', async () => {
+  const fixture = await createFixture();
+  fixture.sync.initSync();
+  const sender = fixture.peers.at(-1);
+  sender.emit('open', fixture.sync.MASTER_PEER_ID);
+  const senderConnection = new fixture.FakeConnection(sender);
+  sender.emit('connection', senderConnection);
+
+  assert.doesNotThrow(() => {
+    senderConnection.emit('data', null);
+    senderConnection.emit('data', 'REQUEST_RELEASE_SENDER');
+    senderConnection.emit('data', {});
+  });
+  senderConnection.emit('data', { type: 'REQUEST_RELEASE_SENDER' });
+
+  assert.equal(sender.destroyed, true);
+  assert.equal(fixture.state.syncRole, 'viewer');
+});
+
 test('release 後に旧 sender が viewer 接続へ失敗しても、console error なしで再試行する', async (t) => {
   const fixture = await createFixture();
   const originalConsoleError = console.error;
@@ -380,6 +399,55 @@ test('sender は DataConnection open 前に状態を送らず、open 後に初�
     activeCategoryId: 1,
     solvedWords: [0]
   }]);
+});
+
+test('viewer は不正な STATE_UPDATE を無視し、有効な状態だけを反映する', async () => {
+  const fixture = await createFixture();
+  const { connection } = fixture.startAsViewer();
+  const receivedPayloads = [];
+  fixture.sync.registerSyncStateReceivedListener((payload) => receivedPayloads.push(payload));
+
+  connection.emit('data', {
+    type: 'STATE_UPDATE',
+    currentScreen: 'GAME',
+    activeCategoryId: 1,
+    solvedWords: [0]
+  });
+  assert.equal(fixture.state.currentScreen, 'HOME');
+  assert.equal(fixture.state.activeCategory.id, 1);
+  assert.deepEqual([...fixture.state.solvedWords], [0]);
+  assert.equal(receivedPayloads.length, 1);
+
+  const invalidPayloads = [
+    null,
+    { type: 'STATE_UPDATE', currentScreen: 'GAME', activeCategoryId: 1, solvedWords: null },
+    { type: 'STATE_UPDATE', currentScreen: 'GAME', activeCategoryId: 1, solvedWords: 0 },
+    { type: 'STATE_UPDATE', currentScreen: 'GAME', activeCategoryId: 999, solvedWords: [] },
+    { type: 'STATE_UPDATE', currentScreen: 'INVALID', activeCategoryId: 1, solvedWords: [] },
+    { type: 'STATE_UPDATE', currentScreen: 'GAME', activeCategoryId: null, solvedWords: [] },
+    { type: 'STATE_UPDATE', currentScreen: 'GAME', activeCategoryId: 1, solvedWords: new Set([0]) },
+    { type: 'STATE_UPDATE', currentScreen: 'GAME', activeCategoryId: 1, solvedWords: [undefined] },
+    { type: 'STATE_UPDATE', currentScreen: 'GAME', activeCategoryId: 1, solvedWords: [0.5] },
+    { type: 'STATE_UPDATE', currentScreen: 'GAME', activeCategoryId: 1, solvedWords: [1] },
+    { type: 'STATE_UPDATE', currentScreen: 'GAME', activeCategoryId: 1, solvedWords: [0, 0] },
+    { type: 'STATE_UPDATE', currentScreen: 'GAME', activeCategoryId: 1, solvedWords: new Set([0, 1]) },
+    { type: 'STATE_UPDATE', currentScreen: 'GAME', activeCategoryId: null, solvedWords: [0] }
+  ];
+  for (const payload of invalidPayloads) connection.emit('data', payload);
+
+  assert.equal(fixture.state.currentScreen, 'HOME');
+  assert.equal(fixture.state.activeCategory.id, 1);
+  assert.deepEqual([...fixture.state.solvedWords], [0]);
+  assert.equal(receivedPayloads.length, 1);
+
+  connection.emit('data', {
+    type: 'STATE_UPDATE',
+    currentScreen: 'GAME',
+    activeCategoryId: 1,
+    solvedWords: []
+  });
+  assert.deepEqual([...fixture.state.solvedWords], []);
+  assert.equal(receivedPayloads.length, 2);
 });
 
 test('disconnected は current peer だけ reconnect する', async () => {

@@ -7,9 +7,9 @@ const { canChangeLocalState, shouldAttemptTakeoverClaim } = await import(
   `data:text/javascript;base64,${Buffer.from(syncRulesSource).toString('base64')}`
 );
 
-test('viewer only はローカル状態を変更できず、loading と sender は変更できる', () => {
+test('sender だけがローカル状態を変更でき、loading と viewer は変更できない', () => {
   assert.equal(canChangeLocalState('viewer'), false);
-  assert.equal(canChangeLocalState('loading'), true);
+  assert.equal(canChangeLocalState('loading'), false);
   assert.equal(canChangeLocalState('sender'), true);
 });
 

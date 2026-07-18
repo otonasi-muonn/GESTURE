@@ -103,7 +103,7 @@ export function triggerSelectAction(element) {
     const wordIdx = element.dataset.index;
     toggleWordSolved(wordIdx);
   } else if (element.id === 'btn-back-manual' || element.classList.contains('btn-back')) {
-    if (state.syncRole === 'viewer') return;
+    if (state.syncRole !== 'sender') return;
     playClapSound();
     transitionTo('HOME');
   } else if (element.id === 'btn-reset-round') {

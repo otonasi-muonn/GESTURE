@@ -102,10 +102,6 @@ function notifyStateChange() {
 // 画面遷移処理
 export function transitionTo(screenName) {
   state.currentScreen = screenName;
-  state.hands.forEach(h => {
-    h.fistProgress = 0;
-    h.fistStartTime = null;
-  });
   
   if (screenName === 'HOME') {
     elScreenGame.classList.remove('active');

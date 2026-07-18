@@ -72,6 +72,33 @@ function showCamera(show) {
   if (elCameraContainer) elCameraContainer.style.display = show ? 'block' : 'none';
 }
 
+function parseStateUpdate(payload) {
+  if (!payload || typeof payload !== 'object' || payload.type !== 'STATE_UPDATE') return null;
+  if (payload.currentScreen !== 'HOME' && payload.currentScreen !== 'GAME') return null;
+
+  const activeCategory = payload.activeCategoryId === null
+    ? null
+    : CATEGORIES.find((category) => category.id === payload.activeCategoryId);
+  if (payload.activeCategoryId !== null && !activeCategory) return null;
+  if (payload.currentScreen === 'GAME' && !activeCategory) return null;
+
+  if (!Array.isArray(payload.solvedWords)) return null;
+  const solvedWordIndexes = payload.solvedWords;
+  if (solvedWordIndexes.length > 1) return null;
+
+  if (solvedWordIndexes.length === 1) {
+    const selectedIndex = solvedWordIndexes[0];
+    if (
+      !activeCategory
+      || !Number.isInteger(selectedIndex)
+      || selectedIndex < 0
+      || selectedIndex >= activeCategory.words.length
+    ) return null;
+  }
+
+  return { activeCategory, solvedWords: new Set(solvedWordIndexes) };
+}
+
 export function broadcastState() {
   if (state.syncRole !== 'sender' || !peer || activeConnections.length === 0) return;
   const payload = {
@@ -131,7 +158,7 @@ function handleSenderConnection(senderPeer, conn) {
   });
   conn.on('data', (payload) => {
     if (peer !== senderPeer || !activeConnections.includes(conn)) return;
-    if (payload.type === 'REQUEST_RELEASE_SENDER') {
+    if (payload && typeof payload === 'object' && payload.type === 'REQUEST_RELEASE_SENDER') {
       destroyPeer();
       startViewerMode();
     }
@@ -247,9 +274,11 @@ export function startViewerMode() {
       updateSyncStatus('viewer', '同期完了');
     });
     connection.on('data', (payload) => {
-      if (peer !== viewerPeer || p2pConnection !== connection || payload.type !== 'STATE_UPDATE') return;
-      state.activeCategory = payload.activeCategoryId === null ? null : CATEGORIES.find((category) => category.id === payload.activeCategoryId);
-      state.solvedWords = new Set(payload.solvedWords);
+      if (peer !== viewerPeer || p2pConnection !== connection) return;
+      const receivedState = parseStateUpdate(payload);
+      if (!receivedState) return;
+      state.activeCategory = receivedState.activeCategory;
+      state.solvedWords = receivedState.solvedWords;
       onSyncStateReceivedCallback?.(payload);
     });
     connection.on('close', () => {

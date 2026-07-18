@@ -7,8 +7,8 @@ export const state = {
   
   // ポインター＆ジェスチャー制御（両手分）
   hands: [
-    { cursor: { x: 0, y: 0 }, targetCursor: { x: 0, y: 0 }, isDetected: false, hoveredElement: null, fistProgress: 0, fistStartTime: null, isFistActive: false, isFistTriggered: false },
-    { cursor: { x: 0, y: 0 }, targetCursor: { x: 0, y: 0 }, isDetected: false, hoveredElement: null, fistProgress: 0, fistStartTime: null, isFistActive: false, isFistTriggered: false }
+    { cursor: { x: 0, y: 0 }, targetCursor: { x: 0, y: 0 }, isDetected: false, hoveredElement: null, isFistActive: false, isFistTriggered: false },
+    { cursor: { x: 0, y: 0 }, targetCursor: { x: 0, y: 0 }, isDetected: false, hoveredElement: null, isFistActive: false, isFistTriggered: false }
   ],
   isHandDetected: false,
   
