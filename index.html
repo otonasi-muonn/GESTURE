@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gesture Show! - ジェスチャーゲーム回答表示アプリ</title>
+  <!-- Google Fonts: Outfit & M PLUS Rounded 1c -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
+  
+  <!-- MediaPipe Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 背景のエフェクト（光球など） -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <!-- 手のひらカーソル -->
+  <div id="hand-cursor" class="hand-cursor hidden">
+    <div class="cursor-ring"></div>
+    <div class="cursor-dot"></div>
+  </div>
+
+  <div id="app">
+    <!-- ヘッダー -->
+    <header class="app-header">
+      <h1 class="logo">Gesture <span class="neon-text">Show!</span></h1>
+      <div class="header-controls">
+        <button id="btn-sound-init" class="btn-icon glow-hover" title="サウンドを有効化">
+          <span class="icon">🔊</span> <span class="label">サウンドON</span>
+        </button>
+        <button id="btn-camera-toggle" class="btn-icon glow-hover" title="カメラ表示切替">
+          <span class="icon">📷</span> <span class="label">カメラ表示</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="app-main">
+      
+      <!-- 画面1: カテゴリー選択画面 -->
+      <section id="screen-home" class="screen active">
+        <div class="hero-section">
+          <p class="hero-sub">非接触型ジェスチャーゲーム回答ボード</p>
+          <h2 class="hero-title">カテゴリーを選択してください</h2>
+          <p class="guide-text">
+            画面のボタンに手を伸ばし、<span class="highlight">「グー（握り拳）」</span>にすると選択されます。
+          </p>
+        </div>
+
+        <div class="category-grid" id="category-list">
+          <!-- JSで動的に追加されます -->
+        </div>
+
+        <!-- カメラキャリブレーション・情報エリア -->
+        <div class="camera-status-panel glass">
+          <div class="panel-header">
+            <h3>システムステータス</h3>
+            <span id="camera-badge" class="badge badge-off">カメラOFF</span>
+          </div>
+          <div class="panel-body">
+            <p id="status-message">カメラと手の検出を準備中...</p>
+            <div class="gesture-hints">
+              <div class="hint-item">
+                <span class="gesture-icon">✊</span>
+                <div>
+                  <strong>グー (Fist)</strong>
+                  <span>決定・選択する</span>
+                </div>
+              </div>
+              <div class="hint-item">
+                <span class="gesture-icon">🙏</span>
+                <div>
+                  <strong>手を合わせる (Clap)</strong>
+                  <span>戻る (詳細画面から)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 画面2: 回答詳細画面 -->
+      <section id="screen-game" class="screen">
+        <div class="game-header">
+          <button id="btn-back-manual" class="btn-back glow-hover">
+            <span>←</span> カテゴリー選択へ
+          </button>
+          <h2 id="active-category-title" class="category-title">カテゴリー名</h2>
+          <div class="game-stats">
+            <div class="stat-box glass">
+              <span class="stat-label">正解数</span>
+              <span id="score-counter" class="stat-value neon-text">0 / 10</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="guide-text">
+          お題に手を伸ばして<span class="highlight">「グー」</span>にすると正解状態になります。戻るには<span class="highlight">「両手を合わせる」</span>か戻るボタンをグーにします。
+        </p>
+
+        <div class="word-grid" id="word-list">
+          <!-- JSで動的にお題カードが生成されます -->
+        </div>
+
+        <div class="action-bar">
+          <button id="btn-reset-round" class="btn glow-hover">このカテゴリーをリセット</button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- カメラオーバーレイ（画面隅に小さく配置、切り替え可能） -->
+    <div id="camera-container" class="camera-container minimized">
+      <video id="webcam" autoplay playsinline muted></video>
+      <canvas id="canvas-overlay"></canvas>
+      <div class="camera-indicator">
+        <span class="indicator-dot animate-pulse"></span>
+        <span id="hands-detected-text">手が見つかりません</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
