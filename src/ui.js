@@ -1,6 +1,7 @@
 import { state, elScreenHome, elScreenGame, elCategoryList, elWordList, elActiveCategoryTitle } from './state.js';
 import { CATEGORIES } from './data.js';
 import { playSuccessSound, playBuzzerSound, playClapSound } from './audio.js';
+import { canChangeLocalState } from './sync-rules.js';
 
 // カテゴリー選択画面の生成
 export function renderCategories() {
@@ -83,6 +84,10 @@ export function renderWords() {
   }
 }
 
+export function refreshRoleUI() {
+  if (state.currentScreen === 'GAME') renderWords();
+}
+
 let onStateChangeCallback = null;
 export function registerStateChangeListener(cb) {
   onStateChangeCallback = cb;
@@ -123,6 +128,7 @@ export function transitionTo(screenName) {
 
 // カテゴリー選択実行
 export function selectCategory(id) {
+  if (!canChangeLocalState(state.syncRole)) return;
   state.activeCategory = CATEGORIES.find(c => c.id === Number(id));
   state.solvedWords.clear();
   playSuccessSound();
@@ -132,6 +138,7 @@ export function selectCategory(id) {
 
 // お題選択トグル（他のお題を選択すると、以前の選択は自動解除されます。選択済みのものを再選択しても解除されません）
 export function toggleWordSolved(index) {
+  if (!canChangeLocalState(state.syncRole)) return;
   index = Number(index);
   if (state.solvedWords.has(index)) {
     // 既に選択されている場合は解除しない
@@ -147,6 +154,7 @@ export function toggleWordSolved(index) {
 
 // リセット処理
 export function resetCurrentRound() {
+  if (!canChangeLocalState(state.syncRole)) return;
   state.solvedWords.clear();
   playBuzzerSound();
   renderWords();
