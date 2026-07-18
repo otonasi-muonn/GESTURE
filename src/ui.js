@@ -122,9 +122,17 @@ export function transitionTo(screenName) {
   notifyStateChange();
 }
 
+let lastActionTime = 0;
+const ACTION_COOLDOWN_MS = 500;
+
 // カテゴリー選択実行
 export function selectCategory(id) {
   if (!canChangeLocalState(state.syncRole)) return;
+  
+  const now = performance.now();
+  if (now - lastActionTime < ACTION_COOLDOWN_MS) return;
+  lastActionTime = now;
+  
   state.activeCategory = CATEGORIES.find(c => c.id === Number(id));
   state.solvedWords.clear();
   playSuccessSound();
@@ -135,6 +143,11 @@ export function selectCategory(id) {
 // お題選択トグル（他のお題を選択すると、以前の選択は自動解除されます。選択済みのものを再選択しても解除されません）
 export function toggleWordSolved(index) {
   if (!canChangeLocalState(state.syncRole)) return;
+  
+  const now = performance.now();
+  if (now - lastActionTime < ACTION_COOLDOWN_MS) return;
+  lastActionTime = now;
+  
   index = Number(index);
   if (state.solvedWords.has(index)) {
     // 既に選択されている場合は解除しない
@@ -151,6 +164,11 @@ export function toggleWordSolved(index) {
 // リセット処理
 export function resetCurrentRound() {
   if (!canChangeLocalState(state.syncRole)) return;
+  
+  const now = performance.now();
+  if (now - lastActionTime < ACTION_COOLDOWN_MS) return;
+  lastActionTime = now;
+  
   state.solvedWords.clear();
   playBuzzerSound();
   renderWords();
