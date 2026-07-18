@@ -71,7 +71,7 @@ export function onResults(results) {
       const isActionPose = handState.isSelectPose || handState.isBackPose;
       drawHandSkeleton(landmarks, i, isActionPose);
 
-      if (state.syncRole === 'sender' && !isAnyBackPose && handState.isSelectPose) {
+      if (state.syncRole === 'sender' && !isAnyBackPose) {
         processGestureSelection(i);
       }
     }

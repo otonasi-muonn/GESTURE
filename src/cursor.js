@@ -68,10 +68,35 @@ export function processHoverAndGrab(handIdx, elCursor) {
 
 export function processGestureSelection(handIdx) {
   const hand = state.hands[handIdx];
-  if (state.syncRole !== 'sender' || !hand?.isDetected || !hand.isSelectPose) return;
+  if (state.syncRole !== 'sender' || !hand?.isDetected) return;
 
-  const interactiveEl = getInteractiveElementAt(hand.cursor.x, hand.cursor.y);
-  if (interactiveEl) triggerSelectAction(interactiveEl);
+  const now = performance.now();
+  
+  if (hand.isSelectPose) {
+    const interactiveEl = getInteractiveElementAt(hand.cursor.x, hand.cursor.y);
+    
+    if (interactiveEl) {
+      // 1. インタラクティブ要素の上での決定処理（連打チャタリング防止の800msクールダウン）
+      if (!hand.isSelectTriggered && (now - hand.lastClickTime > 800)) {
+        hand.isSelectTriggered = true;
+        hand.lastClickTime = now;
+        triggerSelectAction(interactiveEl);
+      }
+    } else {
+      // 2. 何もない空の場所で決定（ピンチ）した場合はカテゴリー選択画面へ戻る
+      if (!hand.isSelectTriggered && (now - hand.lastClickTime > 800)) {
+        hand.isSelectTriggered = true;
+        hand.lastClickTime = now;
+        if (state.currentScreen === 'GAME') {
+          playClapSound();
+          transitionTo('HOME');
+        }
+      }
+    }
+  } else {
+    // ピンチ解除時にフラグをリセットし、次のクリックを可能にする
+    hand.isSelectTriggered = false;
+  }
 }
 
 export function clearHoverStates(handIdx, elCursor) {
