@@ -79,21 +79,11 @@ export function processGestureSelection(handIdx) {
     const interactiveEl = getInteractiveElementAt(hand.cursor.x, hand.cursor.y);
     
     if (interactiveEl) {
-      // 1. インタラクティブ要素の上での決定処理（1回握ることで1クリックのみ。連打防止）
+      // インタラクティブ要素の上での決定処理（1回握ることで1クリックのみ。連打防止）
       if (!hand.isSelectTriggered && (now - hand.lastClickTime > 500)) {
         hand.isSelectTriggered = true;
         hand.lastClickTime = now;
         triggerSelectAction(interactiveEl);
-      }
-    } else {
-      // 2. 何もない空の場所で決定（グー）した場合はカテゴリー選択画面へ戻る
-      if (!hand.isSelectTriggered && (now - hand.lastClickTime > 500)) {
-        hand.isSelectTriggered = true;
-        hand.lastClickTime = now;
-        if (state.currentScreen === 'GAME') {
-          playClapSound();
-          transitionTo('HOME');
-        }
       }
     }
   } else {
