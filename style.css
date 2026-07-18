@@ -557,40 +557,19 @@ body {
 }
 
 /* ==========================================================================
-   Camera Container (Bottom Right Overlay)
+   Camera Container (Fullscreen Background Overlay)
    ========================================================================== */
 
 .camera-container {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 240px;
-  height: 180px;
-  border-radius: 16px;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1; /* Place behind all UI */
   overflow: hidden;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-  border: 2px solid var(--panel-border);
-  z-index: 1000;
-  transition: var(--transition-smooth);
-  background: var(--bg-deep);
-}
-
-.camera-container.minimized {
-  width: 240px;
-  height: 180px;
-}
-
-.camera-container.expanded {
-  width: 480px;
-  height: 360px;
-  border-color: var(--neon-cyan);
-  box-shadow: var(--shadow-neon-cyan);
-}
-
-.camera-container.hidden-cam {
-  opacity: 0;
   pointer-events: none;
-  transform: translateY(20px);
+  background-color: var(--bg-deep);
 }
 
 #webcam {
@@ -598,6 +577,8 @@ body {
   height: 100%;
   object-fit: cover;
   transform: scaleX(-1); /* Mirror camera output */
+  opacity: 0.4; /* Default: dimmed background for high readability */
+  transition: opacity 0.3s ease;
 }
 
 #canvas-overlay {
@@ -611,21 +592,24 @@ body {
 }
 
 .camera-indicator {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  background: rgba(0,0,0,0.7);
-  padding: 4px 10px;
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: rgba(0,0,0,0.8);
+  padding: 8px 16px;
   border-radius: 20px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.75rem;
+  gap: 8px;
+  font-size: 0.85rem;
+  z-index: 1000;
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(10px);
 }
 
 .indicator-dot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   background-color: var(--neon-cyan);
   border-radius: 50%;
 }
@@ -719,15 +703,10 @@ body {
     grid-template-columns: 1fr 1fr;
   }
   
-  .camera-container.minimized {
-    width: 140px;
-    height: 105px;
+  .camera-indicator {
     bottom: 12px;
     right: 12px;
-  }
-  
-  .camera-container.expanded {
-    width: 280px;
-    height: 210px;
+    padding: 6px 12px;
+    font-size: 0.75rem;
   }
 }

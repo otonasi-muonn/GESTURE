@@ -61,14 +61,15 @@ const state = {
   
   // ホバーおよびクリック（グー）進行度
   hoveredElement: null,
-  fistProgress: 0, // 0.0 〜 1.0 (秒)
+  fistProgress: 0, // 0.0 〜 1.0 (進行度割合)
+  fistStartTime: null,
   isFistActive: false,
   
   // 両手合掌の制御
   lastClapTime: 0,
   
   // カメラ設定
-  cameraVisible: true,
+  cameraOpacityIndex: 0, // opacities 配列のインデックス
   audioContext: null
 };
 
@@ -219,6 +220,7 @@ function updateScoreUI() {
 function transitionTo(screenName) {
   state.currentScreen = screenName;
   state.fistProgress = 0;
+  state.fistStartTime = null;
   
   if (screenName === 'HOME') {
     elScreenGame.classList.remove('active');
@@ -315,6 +317,7 @@ function processHoverAndGrab() {
       state.hoveredElement.classList.add('hovered');
       playHoverSound();
       state.fistProgress = 0;
+      state.fistStartTime = null;
       elCursor.classList.add('hovering');
     }
     
@@ -323,24 +326,30 @@ function processHoverAndGrab() {
       elCursor.classList.add('grabbing');
       elCursor.classList.add('loading');
       
-      // プログレス（チャージ）を増加 (約1.2秒で決定)
-      state.fistProgress += 0.02; // フレームごとに増加
+      if (state.fistStartTime === null) {
+        state.fistStartTime = performance.now();
+      }
       
-      // カーソルサイズを収縮させ、CSS変数に反映して視覚化（必要なら）
-      const progressPercent = Math.min(100, (state.fistProgress / 1.0) * 100);
+      // 0.5秒のホールドで確定
+      const elapsed = (performance.now() - state.fistStartTime) / 1000;
+      state.fistProgress = Math.min(1.0, elapsed / 0.5);
+      
+      // カーソルサイズを収縮させ、CSS変数に反映して視覚化
+      const progressPercent = Math.min(100, state.fistProgress * 100);
       elCursor.style.setProperty('--grab-progress', `${progressPercent}%`);
       
       // 確定トリガー
       if (state.fistProgress >= 1.0) {
         triggerSelectAction(state.hoveredElement);
         state.fistProgress = 0;
+        state.fistStartTime = null;
         elCursor.classList.remove('loading');
       }
     } else {
       // グーを解いた場合
-      elCursor.classList.remove('grabbing');
-      elCursor.classList.remove('loading');
+      elCursor.classList.remove('grabbing', 'loading');
       state.fistProgress = 0;
+      state.fistStartTime = null;
     }
   } else {
     // インタラクティブ要素から外れた場合
@@ -355,6 +364,7 @@ function clearHoverStates() {
   }
   elCursor.classList.remove('hovering', 'grabbing', 'loading');
   state.fistProgress = 0;
+  state.fistStartTime = null;
 }
 
 // ジェスチャーによって選択された要素のクリック疑似発火
@@ -377,16 +387,25 @@ function triggerSelectAction(element) {
   }
 }
 
-// カメラ切り替え
+// カメラ背景透過度の切り替えサイクル
+const OPACITIES = [
+  { value: 0.4, label: "背景カメラ: 中" },
+  { value: 0.8, label: "背景カメラ: 明" },
+  { value: 0.0, label: "背景カメラ: OFF" },
+  { value: 0.1, label: "背景カメラ: 暗" }
+];
+
 function toggleCameraView() {
-  const container = elCameraContainer;
-  if (container.classList.contains('minimized')) {
-    container.classList.remove('minimized');
-    container.classList.add('expanded');
-  } else if (container.classList.contains('expanded')) {
-    container.classList.remove('expanded');
-    container.classList.add('minimized');
-  }
+  state.cameraOpacityIndex = (state.cameraOpacityIndex + 1) % OPACITIES.length;
+  const targetOpacity = OPACITIES[state.cameraOpacityIndex];
+  
+  // ビデオの不透明度を設定
+  elWebcam.style.opacity = targetOpacity.value;
+  
+  // ボタンテキストの変更
+  elBtnCameraToggle.querySelector('.label').textContent = targetOpacity.label;
+  
+  playHoverSound();
 }
 
 // ==========================================================================

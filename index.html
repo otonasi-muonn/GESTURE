@@ -36,7 +36,7 @@
           <span class="icon">🔊</span> <span class="label">サウンドON</span>
         </button>
         <button id="btn-camera-toggle" class="btn-icon glow-hover" title="カメラ表示切替">
-          <span class="icon">📷</span> <span class="label">カメラ表示</span>
+          <span class="icon">📷</span> <span class="label">背景カメラ: 中</span>
         </button>
       </div>
     </header>
@@ -116,8 +116,8 @@
 
     </main>
 
-    <!-- カメラオーバーレイ（画面隅に小さく配置、切り替え可能） -->
-    <div id="camera-container" class="camera-container minimized">
+    <!-- 背景カメラ用要素（全面に背面配置） -->
+    <div id="camera-container" class="camera-container">
       <video id="webcam" autoplay playsinline muted></video>
       <canvas id="canvas-overlay"></canvas>
       <div class="camera-indicator">
