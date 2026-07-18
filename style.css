@@ -314,7 +314,7 @@ body {
 
 .category-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 2vh 2vw;
   margin-bottom: 2vh;
   flex: 1;
@@ -417,7 +417,7 @@ body {
 
 .word-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 2vh 1.5vw;
   margin: 1.5vh 0;
   flex: 1;

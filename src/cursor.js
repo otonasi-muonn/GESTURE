@@ -13,6 +13,11 @@ export function updateCursorSmoothLoop() {
     
     if (!elCursor) continue;
     
+    // グーが解除されたら、トリガー済フラグをリセット（チャタリング・連打防止）
+    if (!hand.isFistActive) {
+      hand.isFistTriggered = false;
+    }
+    
     // スムージング
     hand.cursor.x += (hand.targetCursor.x - hand.cursor.x) * lerpFactor;
     hand.cursor.y += (hand.targetCursor.y - hand.cursor.y) * lerpFactor;
@@ -88,7 +93,6 @@ export function clearHoverStates(handIdx, elCursor) {
   if (elCursor) {
     elCursor.classList.remove('hovering', 'grabbing');
   }
-  hand.isFistTriggered = false;
 }
 
 // ジェスチャーによって選択された要素のクリック疑似発火
