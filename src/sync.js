@@ -221,6 +221,7 @@ export function initSync({ takeoverAttempt = 0 } = {}) {
 
 export function startViewerMode() {
   const wasSender = state.syncRole === 'sender';
+  let suppressInitialConnectionError = wasSender;
   destroyPeer();
   setRole('viewer', '送信機を探しています...');
   showCamera(false);
@@ -242,6 +243,7 @@ export function startViewerMode() {
     p2pConnection = connection;
     connection.on('open', () => {
       if (peer !== viewerPeer || p2pConnection !== connection) return;
+      suppressInitialConnectionError = false;
       updateSyncStatus('viewer', '同期完了');
     });
     connection.on('data', (payload) => {
@@ -258,7 +260,7 @@ export function startViewerMode() {
     connection.on('error', (error) => {
       if (peer !== viewerPeer || p2pConnection !== connection) return;
       if (takeoverInProgress) return;
-      console.error('P2P connection error', error);
+      if (!suppressInitialConnectionError) console.error('P2P connection error', error);
       scheduleViewerRestart('接続エラー。再試行中...');
     });
   });
@@ -269,7 +271,9 @@ export function startViewerMode() {
   });
   viewerPeer.on('error', (error) => {
     if (peer !== viewerPeer) return;
-    console.error('PeerJS viewer error', error);
+    if (!suppressInitialConnectionError || error?.type !== 'peer-unavailable') {
+      console.error('PeerJS viewer error', error);
+    }
     scheduleViewerRestart('接続エラー。再試行中...', 3000);
   });
 }
