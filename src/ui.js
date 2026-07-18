@@ -88,17 +88,17 @@ export function selectCategory(id) {
   transitionTo('GAME');
 }
 
-// お題選択トグル（他のお題を選択すると、以前の選択は自動解除されます）
+// お題選択トグル（他のお題を選択すると、以前の選択は自動解除されます。選択済みのものを再選択しても解除されません）
 export function toggleWordSolved(index) {
   index = Number(index);
   if (state.solvedWords.has(index)) {
-    state.solvedWords.delete(index);
-    playBuzzerSound();
-  } else {
-    state.solvedWords.clear(); // 以前の選択を解除
-    state.solvedWords.add(index);
-    playSuccessSound();
+    // 既に選択されている場合は解除しない
+    return;
   }
+  
+  state.solvedWords.clear(); // 以前の選択を解除
+  state.solvedWords.add(index);
+  playSuccessSound();
   renderWords();
 }
 
