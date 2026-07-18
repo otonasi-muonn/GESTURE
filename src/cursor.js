@@ -46,7 +46,7 @@ export function processHoverAndGrab(handIdx, elCursor) {
   let interactiveEl = null;
   
   if (target) {
-    interactiveEl = target.closest('.category-card, .word-card, .btn-back, .btn, .btn-icon');
+    interactiveEl = target.closest('.category-card, .word-card, .btn-back, .btn, .btn-icon, .btn-take-control');
   }
   
   if (interactiveEl) {

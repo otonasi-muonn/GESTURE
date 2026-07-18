@@ -219,8 +219,8 @@ export function startViewerMode() {
   });
 }
 
-// モジュール読み込み完了時に操作権譲渡のイベントを設定
-document.addEventListener('DOMContentLoaded', () => {
+// 操作権譲渡のイベント設定
+function setupTakeoverButton() {
   const elBtnTakeControl = document.getElementById('btn-take-control');
   if (elBtnTakeControl) {
     elBtnTakeControl.addEventListener('click', (e) => {
@@ -239,4 +239,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 600);
     });
   }
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupTakeoverButton);
+} else {
+  setupTakeoverButton();
+}

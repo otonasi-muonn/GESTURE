@@ -45,5 +45,9 @@ function initApp() {
   initSync();
 }
 
-// DOM読み込み完了時にアプリをブートストラップ
-document.addEventListener('DOMContentLoaded', initApp);
+// DOM読み込み状況に応じてアプリをブートストラップ
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
