@@ -164,6 +164,7 @@ export function toggleWordSolved(index) {
 // リセット処理
 export function resetCurrentRound() {
   if (!canChangeLocalState(state.syncRole)) return;
+  if (state.solvedWords.size === 0) return; // 既に選択が空なら何もしない（ブザー音連打の防止）
   
   const now = performance.now();
   if (now - lastActionTime < ACTION_COOLDOWN_MS) return;

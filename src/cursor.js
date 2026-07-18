@@ -73,18 +73,21 @@ export function processGestureSelection(handIdx) {
   const now = performance.now();
   
   if (hand.isSelectPose) {
+    // ピンチ検出中はリリース用タイマーをリセット
+    hand.pinchReleaseTime = null;
+    
     const interactiveEl = getInteractiveElementAt(hand.cursor.x, hand.cursor.y);
     
     if (interactiveEl) {
-      // 1. インタラクティブ要素の上での決定処理（連打チャタリング防止の800msクールダウン）
-      if (!hand.isSelectTriggered && (now - hand.lastClickTime > 800)) {
+      // 1. インタラクティブ要素の上での決定処理（1回のつまみで1クリックのみ。連打防止）
+      if (!hand.isSelectTriggered && (now - hand.lastClickTime > 500)) {
         hand.isSelectTriggered = true;
         hand.lastClickTime = now;
         triggerSelectAction(interactiveEl);
       }
     } else {
       // 2. 何もない空の場所で決定（ピンチ）した場合はカテゴリー選択画面へ戻る
-      if (!hand.isSelectTriggered && (now - hand.lastClickTime > 800)) {
+      if (!hand.isSelectTriggered && (now - hand.lastClickTime > 500)) {
         hand.isSelectTriggered = true;
         hand.lastClickTime = now;
         if (state.currentScreen === 'GAME') {
@@ -94,8 +97,15 @@ export function processGestureSelection(handIdx) {
       }
     }
   } else {
-    // ピンチ解除時にフラグをリセットし、次のクリックを可能にする
-    hand.isSelectTriggered = false;
+    // ピンチが解除された際、ノイズ（1フレームの誤検出）による連続クリックを防ぐため、
+    // 250ms以上継続してピンチが解除された場合のみ次のクリックを可能にする（1つまみ1クリックの厳格化）
+    if (!hand.pinchReleaseTime) {
+      hand.pinchReleaseTime = now;
+    }
+    
+    if (now - hand.pinchReleaseTime > 250) {
+      hand.isSelectTriggered = false;
+    }
   }
 }
 
