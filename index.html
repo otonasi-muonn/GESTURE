@@ -31,6 +31,16 @@
     <div class="cursor-dot"></div>
   </div>
 
+  <!-- 背景カメラ用要素（全面に背面配置） -->
+  <div id="camera-container" class="camera-container">
+    <video id="webcam" autoplay playsinline muted></video>
+    <canvas id="canvas-overlay"></canvas>
+    <div class="camera-indicator">
+      <span class="indicator-dot animate-pulse"></span>
+      <span id="hands-detected-text">手が見つかりません</span>
+    </div>
+  </div>
+
   <div id="app">
     <!-- ヘッダー -->
     <header class="app-header">
@@ -119,16 +129,6 @@
       </section>
 
     </main>
-
-    <!-- 背景カメラ用要素（全面に背面配置） -->
-    <div id="camera-container" class="camera-container">
-      <video id="webcam" autoplay playsinline muted></video>
-      <canvas id="canvas-overlay"></canvas>
-      <div class="camera-indicator">
-        <span class="indicator-dot animate-pulse"></span>
-        <span id="hands-detected-text">手が見つかりません</span>
-      </div>
-    </div>
   </div>
 
   <script type="module" src="app.js"></script>
