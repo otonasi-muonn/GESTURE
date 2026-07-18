@@ -173,6 +173,8 @@ body {
    ========================================================================== */
 
 #app {
+  position: relative;
+  z-index: 10; /* Float above fullscreen camera background */
   max-width: 1400px;
   margin: 0 auto;
   padding: 2vh 3vw;
@@ -272,6 +274,7 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow-y: auto;
 }
 
 .screen {
@@ -602,7 +605,7 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
-  z-index: -1; /* Place behind all UI */
+  z-index: 1; /* In front of body background, behind #app (z-index:10) */
   overflow: hidden;
   pointer-events: none;
   background-color: var(--bg-deep);

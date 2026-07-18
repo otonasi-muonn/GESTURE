@@ -54,16 +54,12 @@ const state = {
   activeCategory: null,
   solvedWords: new Set(), // 正解状態（インデックス 0〜9）の保持
   
-  // ポインター＆ジェスチャー制御
-  cursor: { x: 0, y: 0 },
-  targetCursor: { x: 0, y: 0 },
+  // ポインター＆ジェスチャー制御（両手分）
+  hands: [
+    { cursor: { x: 0, y: 0 }, targetCursor: { x: 0, y: 0 }, isDetected: false, hoveredElement: null, fistProgress: 0, fistStartTime: null, isFistActive: false },
+    { cursor: { x: 0, y: 0 }, targetCursor: { x: 0, y: 0 }, isDetected: false, hoveredElement: null, fistProgress: 0, fistStartTime: null, isFistActive: false }
+  ],
   isHandDetected: false,
-  
-  // ホバーおよびクリック（グー）進行度
-  hoveredElement: null,
-  fistProgress: 0, // 0.0 〜 1.0 (進行度割合)
-  fistStartTime: null,
-  isFistActive: false,
   
   // 両手合掌の制御
   lastClapTime: 0,
@@ -72,9 +68,6 @@ const state = {
   cameraOpacityIndex: 0, // opacities 配列のインデックス
   audioContext: null
 };
-
-// UIエレメントの取得
-const elCursor = document.getElementById('hand-cursor');
 const elScreenHome = document.getElementById('screen-home');
 const elScreenGame = document.getElementById('screen-game');
 const elCategoryList = document.getElementById('category-list');
