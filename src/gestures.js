@@ -1,4 +1,4 @@
-import { state, elWebcam, elCanvas, ctx, elCameraBadge, elStatusMessage, elHandsDetectedText, elCameraContainer } from './state.js';
+import { state, elWebcam, elCanvas, ctx, elHandsDetectedText, elCameraContainer } from './state.js';
 import { playClapSound } from './audio.js';
 import { transitionTo } from './ui.js';
 
@@ -149,14 +149,9 @@ export function initMediaPipe() {
   
   camera.start()
     .then(() => {
-      elCameraBadge.className = 'badge badge-on';
-      elCameraBadge.textContent = 'カメラON';
-      elStatusMessage.textContent = 'カメラと手形追跡システムが起動しました。手をカメラにかざしてください。';
+      console.log('Camera started successfully.');
     })
     .catch((err) => {
       console.error('Camera startup failed', err);
-      elCameraBadge.className = 'badge badge-off';
-      elCameraBadge.textContent = 'カメラエラー';
-      elStatusMessage.textContent = 'カメラの起動に失敗しました。カメラへの権限設定と接続を確認してください。マウスまたはタッチでも操作可能です。';
     });
 }

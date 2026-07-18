@@ -142,28 +142,6 @@ body {
   transform: scale(0.5);
 }
 
-/* Selection Loading Progress Ring */
-.hand-cursor::after {
-  content: '';
-  position: absolute;
-  width: 48px;
-  height: 48px;
-  border: 3px solid transparent;
-  border-top-color: var(--neon-cyan);
-  border-radius: 50%;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.hand-cursor.loading::after {
-  opacity: 1;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 .hidden {
   display: none !important;
 }

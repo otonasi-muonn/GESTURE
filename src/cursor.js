@@ -51,40 +51,22 @@ export function processHoverAndGrab(handIdx, elCursor) {
       hand.hoveredElement = interactiveEl;
       hand.hoveredElement.classList.add('hovered');
       playHoverSound();
-      hand.fistProgress = 0;
-      hand.fistStartTime = null;
+      hand.isFistTriggered = false;
       elCursor.classList.add('hovering');
     }
     
-    // ホバー中に「グー」である場合の処理
+    // ホバー中に「グー」である場合の処理（握った瞬間に即発火、かつ一回のグーで1度だけ動作）
     if (hand.isFistActive) {
       elCursor.classList.add('grabbing');
-      elCursor.classList.add('loading');
       
-      if (hand.fistStartTime === null) {
-        hand.fistStartTime = performance.now();
-      }
-      
-      // 0.5秒のホールドで確定
-      const elapsed = (performance.now() - hand.fistStartTime) / 1000;
-      hand.fistProgress = Math.min(1.0, elapsed / 0.5);
-      
-      // カーソルサイズを収縮させ、CSS変数に反映して視覚化
-      const progressPercent = Math.min(100, hand.fistProgress * 100);
-      elCursor.style.setProperty('--grab-progress', `${progressPercent}%`);
-      
-      // 確定トリガー
-      if (hand.fistProgress >= 1.0) {
+      if (!hand.isFistTriggered) {
+        hand.isFistTriggered = true;
         triggerSelectAction(hand.hoveredElement);
-        hand.fistProgress = 0;
-        hand.fistStartTime = null;
-        elCursor.classList.remove('loading');
       }
     } else {
       // グーを解いた場合
-      elCursor.classList.remove('grabbing', 'loading');
-      hand.fistProgress = 0;
-      hand.fistStartTime = null;
+      elCursor.classList.remove('grabbing');
+      hand.isFistTriggered = false;
     }
   } else {
     // インタラクティブ要素から外れた場合
@@ -104,10 +86,9 @@ export function clearHoverStates(handIdx, elCursor) {
     hand.hoveredElement = null;
   }
   if (elCursor) {
-    elCursor.classList.remove('hovering', 'grabbing', 'loading');
+    elCursor.classList.remove('hovering', 'grabbing');
   }
-  hand.fistProgress = 0;
-  hand.fistStartTime = null;
+  hand.isFistTriggered = false;
 }
 
 // ジェスチャーによって選択された要素のクリック疑似発火

@@ -1,4 +1,4 @@
-import { state, elScreenHome, elScreenGame, elCategoryList, elWordList, elActiveCategoryTitle, elScoreCounter } from './state.js';
+import { state, elScreenHome, elScreenGame, elCategoryList, elWordList, elActiveCategoryTitle } from './state.js';
 import { CATEGORIES } from './data.js';
 import { playSuccessSound, playBuzzerSound, playClapSound } from './audio.js';
 
@@ -52,12 +52,6 @@ export function renderWords() {
     
     elWordList.appendChild(card);
   });
-  
-  updateScoreUI();
-}
-
-export function updateScoreUI() {
-  elScoreCounter.textContent = `${state.solvedWords.size} / 10`;
 }
 
 // 画面遷移処理
@@ -94,13 +88,14 @@ export function selectCategory(id) {
   transitionTo('GAME');
 }
 
-// お題正解トグル
+// お題選択トグル（他のお題を選択すると、以前の選択は自動解除されます）
 export function toggleWordSolved(index) {
   index = Number(index);
   if (state.solvedWords.has(index)) {
     state.solvedWords.delete(index);
     playBuzzerSound();
   } else {
+    state.solvedWords.clear(); // 以前の選択を解除
     state.solvedWords.add(index);
     playSuccessSound();
   }

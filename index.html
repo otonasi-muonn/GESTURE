@@ -63,40 +63,10 @@
         <div class="hero-section">
           <p class="hero-sub">非接触型ジェスチャーゲーム回答ボード</p>
           <h2 class="hero-title">カテゴリーを選択してください</h2>
-          <p class="guide-text">
-            画面のボタンに手を伸ばし、<span class="highlight">「グー（握り拳）」</span>にすると選択されます。
-          </p>
         </div>
 
         <div class="category-grid" id="category-list">
           <!-- JSで動的に追加されます -->
-        </div>
-
-        <!-- カメラキャリブレーション・情報エリア -->
-        <div class="camera-status-panel glass">
-          <div class="panel-header">
-            <h3>システムステータス</h3>
-            <span id="camera-badge" class="badge badge-off">カメラOFF</span>
-          </div>
-          <div class="panel-body">
-            <p id="status-message">カメラと手の検出を準備中...</p>
-            <div class="gesture-hints">
-              <div class="hint-item">
-                <span class="gesture-icon">✊</span>
-                <div>
-                  <strong>グー (Fist)</strong>
-                  <span>決定・選択する</span>
-                </div>
-              </div>
-              <div class="hint-item">
-                <span class="gesture-icon">🙏</span>
-                <div>
-                  <strong>手を合わせる (Clap)</strong>
-                  <span>戻る (詳細画面から)</span>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -107,17 +77,7 @@
             <span>←</span> カテゴリー選択へ
           </button>
           <h2 id="active-category-title" class="category-title">カテゴリー名</h2>
-          <div class="game-stats">
-            <div class="stat-box glass">
-              <span class="stat-label">正解数</span>
-              <span id="score-counter" class="stat-value neon-text">0 / 10</span>
-            </div>
-          </div>
         </div>
-
-        <p class="guide-text">
-          お題に手を伸ばして<span class="highlight">「グー」</span>にすると正解状態になります。戻るには<span class="highlight">「両手を合わせる」</span>か戻るボタンをグーにします。
-        </p>
 
         <div class="word-grid" id="word-list">
           <!-- JSで動的にお題カードが生成されます -->
