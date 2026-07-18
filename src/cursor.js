@@ -68,7 +68,7 @@ export function processHoverAndGrab(handIdx, elCursor) {
 
 export function processGestureSelection(handIdx) {
   const hand = state.hands[handIdx];
-  if (state.syncRole !== 'sender' || !hand?.isDetected) return;
+  if (state.syncRole === 'viewer' || !hand?.isDetected) return;
 
   const now = performance.now();
   
@@ -124,7 +124,7 @@ export function triggerSelectAction(element) {
     const wordIdx = element.dataset.index;
     toggleWordSolved(wordIdx);
   } else if (element.id === 'btn-back-manual' || element.classList.contains('btn-back')) {
-    if (state.syncRole !== 'sender') return;
+    if (state.syncRole === 'viewer') return;
     playClapSound();
     transitionTo('HOME');
   } else if (element.id === 'btn-reset-round') {
