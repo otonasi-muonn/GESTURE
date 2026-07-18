@@ -119,14 +119,14 @@ body {
   background-color: var(--neon-magenta);
 }
 
-.hand-cursor.grabbing .cursor-ring {
+.hand-cursor.selecting .cursor-ring {
   border-color: var(--neon-green);
   border-width: 4px;
   box-shadow: var(--shadow-neon-green);
   transform: scale(0.8);
 }
 
-.hand-cursor.grabbing .cursor-dot {
+.hand-cursor.selecting .cursor-dot {
   background-color: var(--neon-green);
   transform: scale(0.5);
 }
@@ -715,8 +715,8 @@ body {
   }
 
   .hand-cursor.hovering .cursor-ring,
-  .hand-cursor.grabbing .cursor-ring,
-  .hand-cursor.grabbing .cursor-dot,
+  .hand-cursor.selecting .cursor-ring,
+  .hand-cursor.selecting .cursor-dot,
   .glow-hover:hover,
   .glow-hover.active-hover,
   .category-card:hover,

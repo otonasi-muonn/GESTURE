@@ -6,9 +6,7 @@ const source = await readFile(new URL('../src/gesture-rules.js', import.meta.url
 const sourceUrl = `data:text/javascript;base64,${source.toString('base64')}`;
 const {
   detectFingerPoses,
-  nextBackGestureState,
-  detectFistByDistance,
-  nextFistState
+  nextBackGestureState
 } = await import(sourceUrl);
 
 const wrist = { x: 0, y: 0, z: 0 };
@@ -94,15 +92,4 @@ test('nextBackGestureState は解除後の再成立で再度トリガーする',
     isLatched: true,
     shouldTrigger: true
   });
-});
-
-test('旧グー API は利用側の移行まで互換 export として維持する', () => {
-  assert.equal(detectFistByDistance(makeLandmarks()), true);
-
-  let hand = { isFistActive: false };
-  hand = nextFistState(hand, true);
-  hand = nextFistState(hand, true);
-  hand = nextFistState(hand, true);
-
-  assert.equal(hand.isFistActive, true);
 });

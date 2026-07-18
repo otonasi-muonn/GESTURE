@@ -12,11 +12,6 @@ export function updateCursorSmoothLoop() {
     
     if (!elCursor) continue;
     
-    // グーが解除されたら、トリガー済フラグをリセット（チャタリング・連打防止）
-    if (!hand.isFistActive) {
-      hand.isFistTriggered = false;
-    }
-    
     // スムージング
     hand.cursor.x += (hand.targetCursor.x - hand.cursor.x) * lerpFactor;
     hand.cursor.y += (hand.targetCursor.y - hand.cursor.y) * lerpFactor;
@@ -38,15 +33,22 @@ export function updateCursorSmoothLoop() {
   requestAnimationFrame(updateCursorSmoothLoop);
 }
 
-// ホバー要素とグー選択判定のメイン処理
+function getInteractiveElementAt(x, y) {
+  const target = document.elementFromPoint(x, y);
+  const interactiveEl = target?.closest('.category-card, .word-card, .btn-back, .btn, .btn-icon');
+  if (!interactiveEl) return null;
+
+  const screen = interactiveEl.closest('.screen');
+  if (!screen) return interactiveEl;
+
+  const activeScreenId = `screen-${state.currentScreen.toLowerCase()}`;
+  return screen.id === activeScreenId ? interactiveEl : null;
+}
+
+// ホバーと表示状態の更新
 export function processHoverAndGrab(handIdx, elCursor) {
   const hand = state.hands[handIdx];
-  const target = document.elementFromPoint(hand.cursor.x, hand.cursor.y);
-  let interactiveEl = null;
-  
-  if (target) {
-    interactiveEl = target.closest('.category-card, .word-card, .btn-back, .btn, .btn-icon');
-  }
+  const interactiveEl = getInteractiveElementAt(hand.cursor.x, hand.cursor.y);
   
   if (interactiveEl) {
     // 新しい要素にホバーした場合
@@ -55,27 +57,21 @@ export function processHoverAndGrab(handIdx, elCursor) {
       hand.hoveredElement = interactiveEl;
       hand.hoveredElement.classList.add('hovered');
       playHoverSound();
-      hand.isFistTriggered = false;
       elCursor.classList.add('hovering');
     }
-    
-    // ホバー中に「グー」である場合の処理（握った瞬間に即発火、かつ一回のグーで1度だけ動作）
-    if (hand.isFistActive) {
-      elCursor.classList.add('grabbing');
-      
-      if (!hand.isFistTriggered) {
-        hand.isFistTriggered = true;
-        triggerSelectAction(hand.hoveredElement);
-      }
-    } else {
-      // グーを解いた場合
-      elCursor.classList.remove('grabbing');
-      hand.isFistTriggered = false;
-    }
+    elCursor.classList.toggle('selecting', hand.isSelectPose || hand.isBackPose);
   } else {
     // インタラクティブ要素から外れた場合
     clearHoverStates(handIdx, elCursor);
   }
+}
+
+export function processGestureSelection(handIdx) {
+  const hand = state.hands[handIdx];
+  if (state.syncRole !== 'sender' || !hand?.isDetected || !hand.isSelectPose) return;
+
+  const interactiveEl = getInteractiveElementAt(hand.cursor.x, hand.cursor.y);
+  if (interactiveEl) triggerSelectAction(interactiveEl);
 }
 
 export function clearHoverStates(handIdx, elCursor) {
@@ -90,7 +86,7 @@ export function clearHoverStates(handIdx, elCursor) {
     hand.hoveredElement = null;
   }
   if (elCursor) {
-    elCursor.classList.remove('hovering', 'grabbing');
+    elCursor.classList.remove('hovering', 'selecting');
   }
 }
 

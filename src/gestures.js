@@ -1,18 +1,11 @@
 import { state, elWebcam, elCanvas, ctx, elHandsDetectedText } from './state.js';
 import { playClapSound } from './audio.js';
 import { transitionTo } from './ui.js';
-import { detectFistByDistance, nextFistState } from './gesture-rules.js';
+import { processGestureSelection } from './cursor.js';
+import { detectFingerPoses, nextBackGestureState } from './gesture-rules.js';
 
 let activeMediaPipe = null;
 let mediaPipeLifecycleQueue = Promise.resolve();
-
-export function detectFist(landmarks) {
-  return detectFistByDistance(landmarks);
-}
-
-function updateFistState(handState, landmarks) {
-  Object.assign(handState, nextFistState(handState, detectFist(landmarks)));
-}
 
 function resetHandState(handState, handIndex) {
   handState.hoveredElement?.classList.remove('hovered');
@@ -22,11 +15,9 @@ function resetHandState(handState, handIndex) {
   handState.targetCursor.y = 0;
   handState.isDetected = false;
   handState.hoveredElement = null;
-  handState.fistDetectedFrames = 0;
-  handState.fistReleasedFrames = 0;
-  handState.isFistActive = false;
-  handState.isFistTriggered = false;
-  document.getElementById(`hand-cursor-${handIndex}`)?.classList.remove('hovering', 'grabbing');
+  handState.isSelectPose = false;
+  handState.isBackPose = false;
+  document.getElementById(`hand-cursor-${handIndex}`)?.classList.remove('hovering', 'selecting');
   document.getElementById(`hand-cursor-${handIndex}`)?.classList.add('hidden');
 }
 
@@ -45,34 +36,26 @@ export function onResults(results) {
   
   const numHands = results.multiHandLandmarks ? results.multiHandLandmarks.length : 0;
   
+  const detectedHands = results.multiHandLandmarks?.slice(0, state.hands.length) ?? [];
+  const poses = detectedHands.map(detectFingerPoses);
+
   state.hands.forEach((handState, index) => {
     handState.isDetected = false;
-    if (index >= numHands) {
-      Object.assign(handState, nextFistState(handState, false));
-    }
+    handState.isSelectPose = poses[index]?.isSelectPose ?? false;
+    handState.isBackPose = poses[index]?.isBackPose ?? false;
   });
+
+  const isAnyBackPose = poses.some((pose) => pose.isBackPose);
+  const backGesture = nextBackGestureState(state.backGestureLatched, isAnyBackPose);
+  state.backGestureLatched = backGesture.isLatched;
   
   if (numHands > 0) {
     state.isHandDetected = true;
     elHandsDetectedText.textContent = `手検出中: ${numHands}個`;
     
-    // 両手合わせ（クラップ・合掌）による「戻る」検出
-    if (state.syncRole === 'sender' && state.currentScreen === 'GAME' && numHands >= 2) {
-      const hand0_center = results.multiHandLandmarks[0][9];
-      const hand1_center = results.multiHandLandmarks[1][9];
-      
-      const dx = hand0_center.x - hand1_center.x;
-      const dy = hand0_center.y - hand1_center.y;
-      const dz = hand0_center.z - hand1_center.z;
-      const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
-      
-      const now = Date.now();
-      if (distance < 0.08 && (now - state.lastClapTime > 1500)) {
-        state.lastClapTime = now;
-        playClapSound();
-        transitionTo('HOME');
-        return;
-      }
+    if (backGesture.shouldTrigger && state.syncRole === 'sender' && state.currentScreen === 'GAME') {
+      playClapSound();
+      transitionTo('HOME');
     }
     
     // 検出された全ての手（最大2つ）を処理
@@ -81,12 +64,16 @@ export function onResults(results) {
       const handState = state.hands[i];
       handState.isDetected = true;
       
-      const pointerJoint = landmarks[9];
+      const pointerJoint = landmarks[8];
       handState.targetCursor.x = (1 - pointerJoint.x) * window.innerWidth;
       handState.targetCursor.y = pointerJoint.y * window.innerHeight;
-      
-      updateFistState(handState, landmarks);
-      drawHandSkeleton(landmarks, i, handState.isFistActive);
+
+      const isActionPose = handState.isSelectPose || handState.isBackPose;
+      drawHandSkeleton(landmarks, i, isActionPose);
+
+      if (state.syncRole === 'sender' && !isAnyBackPose && handState.isSelectPose) {
+        processGestureSelection(i);
+      }
     }
   } else {
     state.isHandDetected = false;
@@ -95,7 +82,7 @@ export function onResults(results) {
 }
 
 // ネオン骨格の描画
-export function drawHandSkeleton(landmarks, handIdx, isFistActive) {
+export function drawHandSkeleton(landmarks, handIdx, isActionPose) {
   const connections = [
     [0, 1], [1, 2], [2, 3], [3, 4], // 親指
     [0, 5], [5, 6], [6, 7], [7, 8], // 人差し指
@@ -112,7 +99,7 @@ export function drawHandSkeleton(landmarks, handIdx, isFistActive) {
   if (handIdx === 1) {
     strokeColor = '#fe019a';
   }
-  if (isFistActive) {
+  if (isActionPose) {
     strokeColor = '#39ff14';
   }
   
@@ -148,6 +135,7 @@ function enqueueMediaPipeLifecycle(operation) {
 function resetMediaPipeUi() {
   state.hands.forEach(resetHandState);
   state.isHandDetected = false;
+  state.backGestureLatched = false;
   elHandsDetectedText.textContent = '手が見つかりません';
   clearCameraUnavailable();
   ctx.clearRect(0, 0, elCanvas.width, elCanvas.height);
