@@ -29,9 +29,9 @@ export function detectFingerPoses(landmarks) {
     && !extended.ring
     && !extended.pinky;
   
-  const isBackPose = extended.thumb
-    && extended.index
-    && !extended.middle
+  // 戻るジェスチャー: チョキ（人差し指・中指が伸びており、薬指・小指が折られている状態）
+  const isBackPose = extended.index
+    && extended.middle
     && !extended.ring
     && !extended.pinky;
 
