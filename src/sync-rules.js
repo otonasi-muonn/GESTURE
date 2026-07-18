@@ -1,7 +1,7 @@
 export const MAX_TAKEOVER_CLAIM_ATTEMPTS = 3;
 
 export function canChangeLocalState(syncRole) {
-  return syncRole === 'sender';
+  return syncRole === 'sender' || syncRole === 'loading';
 }
 
 export function shouldAttemptTakeoverClaim(attempt) {
