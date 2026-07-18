@@ -73,20 +73,20 @@ export function processGestureSelection(handIdx) {
   const now = performance.now();
   
   if (hand.isSelectPose) {
-    // ピンチ検出中はリリース用タイマーをリセット
+    // グー（拳）検出中はリリース用タイマーをリセット
     hand.pinchReleaseTime = null;
     
     const interactiveEl = getInteractiveElementAt(hand.cursor.x, hand.cursor.y);
     
     if (interactiveEl) {
-      // 1. インタラクティブ要素の上での決定処理（1回のつまみで1クリックのみ。連打防止）
+      // 1. インタラクティブ要素の上での決定処理（1回握ることで1クリックのみ。連打防止）
       if (!hand.isSelectTriggered && (now - hand.lastClickTime > 500)) {
         hand.isSelectTriggered = true;
         hand.lastClickTime = now;
         triggerSelectAction(interactiveEl);
       }
     } else {
-      // 2. 何もない空の場所で決定（ピンチ）した場合はカテゴリー選択画面へ戻る
+      // 2. 何もない空の場所で決定（グー）した場合はカテゴリー選択画面へ戻る
       if (!hand.isSelectTriggered && (now - hand.lastClickTime > 500)) {
         hand.isSelectTriggered = true;
         hand.lastClickTime = now;
@@ -97,8 +97,8 @@ export function processGestureSelection(handIdx) {
       }
     }
   } else {
-    // ピンチが解除された際、ノイズ（1フレームの誤検出）による連続クリックを防ぐため、
-    // 250ms以上継続してピンチが解除された場合のみ次のクリックを可能にする（1つまみ1クリックの厳格化）
+    // グーが解除された際、ノイズ（1フレームの誤検出）による連続クリックを防ぐため、
+    // 250ms以上継続してグーが解除（手を開く）された場合のみ次のクリックを可能にする（1グー1クリックの厳格化）
     if (!hand.pinchReleaseTime) {
       hand.pinchReleaseTime = now;
     }

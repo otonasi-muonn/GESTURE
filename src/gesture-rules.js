@@ -22,16 +22,12 @@ export function detectFingerPoses(landmarks) {
     ])
   );
 
-  // 親指先端(4)と人差し指先端(8)の3D空間上での距離を測定
-  const thumbTip = landmarks[4];
-  const indexTip = landmarks[8];
-  const dx = thumbTip.x - indexTip.x;
-  const dy = thumbTip.y - indexTip.y;
-  const dz = (thumbTip.z ?? 0) - (indexTip.z ?? 0);
-  const pinchDistance = Math.hypot(dx, dy, dz);
-  
-  // 決定ジェスチャー: 親指と人差し指をつまむ（ピンチ：しきい値0.045）
-  const isSelectPose = pinchDistance < 0.045;
+  // 決定ジェスチャー: グー（主要4本指：人差し指・中指・薬指・小指がすべて折られている状態）
+  // 親指の開閉状態は問わないため、非常に安定して判定されます
+  const isSelectPose = !extended.index
+    && !extended.middle
+    && !extended.ring
+    && !extended.pinky;
   
   const isBackPose = extended.thumb
     && extended.index

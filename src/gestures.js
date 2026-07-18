@@ -64,9 +64,9 @@ export function onResults(results) {
       const handState = state.hands[i];
       handState.isDetected = true;
       
-      const pointerJoint = landmarks[8];
-      handState.targetCursor.x = (1 - pointerJoint.x) * window.innerWidth;
-      handState.targetCursor.y = pointerJoint.y * window.innerHeight;
+      const palmCenter = landmarks[9]; // 中指の付け根（手の中心近くの関節）をカーソル位置に設定
+      handState.targetCursor.x = (1 - palmCenter.x) * window.innerWidth;
+      handState.targetCursor.y = palmCenter.y * window.innerHeight;
 
       const isActionPose = handState.isSelectPose || handState.isBackPose;
       drawHandSkeleton(landmarks, i, isActionPose);
