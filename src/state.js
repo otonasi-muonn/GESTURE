@@ -2,7 +2,7 @@
 export const state = {
   currentScreen: 'HOME', // 'HOME' | 'GAME'
   activeCategory: null,
-  solvedWords: new Set(), // 正解状態（インデックス 0〜9）の保持
+  solvedWords: new Set(), // 選択中のお題インデックスの保持（単一選択）
   syncRole: 'loading', // 'sender' | 'viewer' | 'loading'
   
   // ポインター＆ジェスチャー制御（両手分）
