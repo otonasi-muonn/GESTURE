@@ -1,4 +1,12 @@
-const FINGER_JOINTS = [
+const FINGER_JOINTS = {
+  thumb: [4, 3],
+  index: [8, 6],
+  middle: [12, 10],
+  ring: [16, 14],
+  pinky: [20, 18]
+};
+
+const LEGACY_FIST_FINGER_JOINTS = [
   [8, 6],
   [12, 10],
   [16, 14],
@@ -14,7 +22,7 @@ function distance(first, second) {
 
 export function detectFistByDistance(landmarks) {
   const wrist = landmarks[0];
-  return FINGER_JOINTS.every(([tipIndex, pipIndex]) => (
+  return LEGACY_FIST_FINGER_JOINTS.every(([tipIndex, pipIndex]) => (
     distance(landmarks[tipIndex], wrist) < distance(landmarks[pipIndex], wrist)
   ));
 }
@@ -31,4 +39,34 @@ export function nextFistState(hand, isFistDetected) {
   }
 
   return { isFistActive, fistDetectedFrames, fistReleasedFrames };
+}
+
+export function detectFingerPoses(landmarks) {
+  const wrist = landmarks[0];
+  const extended = Object.fromEntries(
+    Object.entries(FINGER_JOINTS).map(([finger, [tipIndex, jointIndex]]) => [
+      finger,
+      distance(landmarks[tipIndex], wrist) > distance(landmarks[jointIndex], wrist)
+    ])
+  );
+
+  const isSelectPose = !extended.thumb
+    && extended.index
+    && !extended.middle
+    && !extended.ring
+    && !extended.pinky;
+  const isBackPose = extended.thumb
+    && extended.index
+    && !extended.middle
+    && !extended.ring
+    && !extended.pinky;
+
+  return { isSelectPose, isBackPose };
+}
+
+export function nextBackGestureState(isLatched, isBackPose) {
+  return {
+    isLatched: isBackPose,
+    shouldTrigger: !isLatched && isBackPose
+  };
 }

@@ -4,72 +4,105 @@ import { readFile } from 'node:fs/promises';
 
 const source = await readFile(new URL('../src/gesture-rules.js', import.meta.url));
 const sourceUrl = `data:text/javascript;base64,${source.toString('base64')}`;
-const { detectFistByDistance, nextFistState } = await import(sourceUrl);
+const {
+  detectFingerPoses,
+  nextBackGestureState,
+  detectFistByDistance,
+  nextFistState
+} = await import(sourceUrl);
 
 const wrist = { x: 0, y: 0, z: 0 };
-const fingerPairs = [
-  [6, 8],
-  [10, 12],
-  [14, 16],
-  [18, 20]
-];
+const fingerPairs = {
+  thumb: [3, 4],
+  index: [6, 8],
+  middle: [10, 12],
+  ring: [14, 16],
+  pinky: [18, 20]
+};
 
-function makeLandmarks({ pipDistance, tipDistance }) {
+function makeLandmarks(extendedFingers = {}) {
   const landmarks = Array.from({ length: 21 }, () => ({ ...wrist }));
   landmarks[0] = wrist;
-  fingerPairs.forEach(([pipIndex, tipIndex]) => {
-    landmarks[pipIndex] = { x: pipDistance, y: 0, z: 0 };
-    landmarks[tipIndex] = { x: tipDistance, y: 0, z: 0 };
-  });
+
+  for (const [finger, [jointIndex, tipIndex]] of Object.entries(fingerPairs)) {
+    const isExtended = extendedFingers[finger] ?? false;
+    landmarks[jointIndex] = { x: 0.5, y: 0, z: 0 };
+    landmarks[tipIndex] = { x: isExtended ? 0.8 : 0.2, y: 0, z: 0 };
+  }
+
   return landmarks;
 }
 
-test('detectFistByDistance は手の向きに関係なく、指先がPIPより手首に近いグーを判定する', () => {
-  const uprightFist = makeLandmarks({ pipDistance: 0.7, tipDistance: 0.3 });
-  const invertedFist = makeLandmarks({ pipDistance: -0.7, tipDistance: -0.3 });
-
-  assert.equal(detectFistByDistance(uprightFist), true);
-  assert.equal(detectFistByDistance(invertedFist), true);
+test('detectFingerPoses は人差し指だけの伸展を決定ポーズとして判定する', () => {
+  assert.deepEqual(
+    detectFingerPoses(makeLandmarks({ index: true })),
+    { isSelectPose: true, isBackPose: false }
+  );
 });
 
-test('detectFistByDistance は開いた手と同距離の境界をグーにしない', () => {
-  const openHand = makeLandmarks({ pipDistance: 0.3, tipDistance: 0.7 });
-  const boundary = makeLandmarks({ pipDistance: 0.5, tipDistance: 0.5 });
-
-  assert.equal(detectFistByDistance(openHand), false);
-  assert.equal(detectFistByDistance(boundary), false);
+test('detectFingerPoses は親指と人差し指だけの伸展を戻るポーズとして判定する', () => {
+  assert.deepEqual(
+    detectFingerPoses(makeLandmarks({ thumb: true, index: true })),
+    { isSelectPose: false, isBackPose: true }
+  );
 });
 
-test('nextFistState は連続3フレームでグーを確定する', () => {
-  let hand = { isFistActive: false, fistDetectedFrames: 0, fistReleasedFrames: 0 };
-
-  hand = nextFistState(hand, true);
-  assert.equal(hand.isFistActive, false);
-  hand = nextFistState(hand, true);
-  assert.equal(hand.isFistActive, false);
-  hand = nextFistState(hand, true);
-  assert.equal(hand.isFistActive, true);
+test('detectFingerPoses は余分な指が伸びているポーズを判定しない', () => {
+  assert.deepEqual(
+    detectFingerPoses(makeLandmarks({ index: true, middle: true })),
+    { isSelectPose: false, isBackPose: false }
+  );
+  assert.deepEqual(
+    detectFingerPoses(makeLandmarks({ thumb: true, index: true, pinky: true })),
+    { isSelectPose: false, isBackPose: false }
+  );
+  assert.deepEqual(
+    detectFingerPoses(makeLandmarks({ index: true, ring: true })),
+    { isSelectPose: false, isBackPose: false }
+  );
 });
 
-test('nextFistState は既存の手状態にカウンターがなくても3フレームで確定する', () => {
+test('detectFingerPoses は全屈曲と同距離の境界を判定しない', () => {
+  assert.deepEqual(
+    detectFingerPoses(makeLandmarks()),
+    { isSelectPose: false, isBackPose: false }
+  );
+
+  const boundary = makeLandmarks({ index: true });
+  boundary[8] = { x: 0.5, y: 0, z: 0 };
+  assert.deepEqual(
+    detectFingerPoses(boundary),
+    { isSelectPose: false, isBackPose: false }
+  );
+});
+
+test('nextBackGestureState は戻るポーズの開始時だけトリガーする', () => {
+  assert.deepEqual(nextBackGestureState(false, true), {
+    isLatched: true,
+    shouldTrigger: true
+  });
+  assert.deepEqual(nextBackGestureState(true, true), {
+    isLatched: true,
+    shouldTrigger: false
+  });
+});
+
+test('nextBackGestureState は解除後の再成立で再度トリガーする', () => {
+  const released = nextBackGestureState(true, false);
+  assert.deepEqual(released, { isLatched: false, shouldTrigger: false });
+  assert.deepEqual(nextBackGestureState(released.isLatched, true), {
+    isLatched: true,
+    shouldTrigger: true
+  });
+});
+
+test('旧グー API は利用側の移行まで互換 export として維持する', () => {
+  assert.equal(detectFistByDistance(makeLandmarks()), true);
+
   let hand = { isFistActive: false };
-
   hand = nextFistState(hand, true);
   hand = nextFistState(hand, true);
   hand = nextFistState(hand, true);
 
   assert.equal(hand.isFistActive, true);
-});
-
-test('nextFistState は連続2フレームでグーを解除し、途中の検出では維持する', () => {
-  let hand = { isFistActive: true, fistDetectedFrames: 3, fistReleasedFrames: 0 };
-
-  hand = nextFistState(hand, false);
-  assert.equal(hand.isFistActive, true);
-  hand = nextFistState(hand, true);
-  assert.equal(hand.isFistActive, true);
-  hand = nextFistState(hand, false);
-  assert.equal(hand.isFistActive, true);
-  hand = nextFistState(hand, false);
-  assert.equal(hand.isFistActive, false);
 });
