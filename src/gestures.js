@@ -1,29 +1,44 @@
-import { state, elWebcam, elCanvas, ctx, elHandsDetectedText, elCameraContainer } from './state.js';
+import { state, elWebcam, elCanvas, ctx, elHandsDetectedText } from './state.js';
 import { playClapSound } from './audio.js';
 import { transitionTo } from './ui.js';
+import { detectFistByDistance, nextFistState } from './gesture-rules.js';
 
-// 指の起立状態チェック
-// y座標は上方向が0、下方向が1。 tip.y < pip.y であれば、指先が関節より「上」にある ＝ 伸びている
-export function isFingerExtended(landmarks, tipIdx, pipIdx) {
-  return landmarks[tipIdx].y < landmarks[pipIdx].y;
+let mediaPipeHands = null;
+let mediaPipeCamera = null;
+let activeMediaPipe = null;
+let mediaPipeLifecycleQueue = Promise.resolve();
+
+export function detectFist(landmarks) {
+  return detectFistByDistance(landmarks);
 }
 
-// 親指の起立状態チェック
-export function isThumbExtended(landmarks, handLabel) {
-  const tip = landmarks[4];
-  const mcp = landmarks[2];
-  const distHorizontal = Math.abs(tip.x - mcp.x);
-  return distHorizontal > 0.05; // 簡易判定しきい値
+function updateFistState(handState, landmarks) {
+  Object.assign(handState, nextFistState(handState, detectFist(landmarks)));
 }
 
-export function detectFist(landmarks, handLabel) {
-  // 4本指（人差し指、中指、薬指、小指）の折りたたみ状態を確認
-  const indexFolded = landmarks[8].y > landmarks[6].y;
-  const middleFolded = landmarks[12].y > landmarks[10].y;
-  const ringFolded = landmarks[16].y > landmarks[14].y;
-  const pinkyFolded = landmarks[20].y > landmarks[18].y;
-  
-  return indexFolded && middleFolded && ringFolded && pinkyFolded;
+function resetHandState(handState, handIndex) {
+  handState.hoveredElement?.classList.remove('hovered');
+  handState.cursor.x = 0;
+  handState.cursor.y = 0;
+  handState.targetCursor.x = 0;
+  handState.targetCursor.y = 0;
+  handState.isDetected = false;
+  handState.hoveredElement = null;
+  handState.fistDetectedFrames = 0;
+  handState.fistReleasedFrames = 0;
+  handState.isFistActive = false;
+  handState.isFistTriggered = false;
+  document.getElementById(`hand-cursor-${handIndex}`)?.classList.remove('hovering', 'grabbing');
+  document.getElementById(`hand-cursor-${handIndex}`)?.classList.add('hidden');
+}
+
+function setCameraUnavailable() {
+  elHandsDetectedText.textContent = 'カメラ利用不可（マウス／タッチ操作可）';
+  elHandsDetectedText.closest('.camera-indicator')?.classList.add('camera-unavailable');
+}
+
+function clearCameraUnavailable() {
+  elHandsDetectedText.closest('.camera-indicator')?.classList.remove('camera-unavailable');
 }
 
 // MediaPipe 検出処理
@@ -32,15 +47,19 @@ export function onResults(results) {
   
   const numHands = results.multiHandLandmarks ? results.multiHandLandmarks.length : 0;
   
-  state.hands[0].isDetected = false;
-  state.hands[1].isDetected = false;
+  state.hands.forEach((handState, index) => {
+    handState.isDetected = false;
+    if (index >= numHands) {
+      Object.assign(handState, nextFistState(handState, false));
+    }
+  });
   
   if (numHands > 0) {
     state.isHandDetected = true;
     elHandsDetectedText.textContent = `手検出中: ${numHands}個`;
     
     // 両手合わせ（クラップ・合掌）による「戻る」検出
-    if (state.currentScreen === 'GAME' && numHands >= 2) {
+    if (state.syncRole !== 'viewer' && state.currentScreen === 'GAME' && numHands >= 2) {
       const hand0_center = results.multiHandLandmarks[0][9];
       const hand1_center = results.multiHandLandmarks[1][9];
       
@@ -61,9 +80,6 @@ export function onResults(results) {
     // 検出された全ての手（最大2つ）を処理
     for (let i = 0; i < Math.min(2, numHands); i++) {
       const landmarks = results.multiHandLandmarks[i];
-      const handMeta = results.multiHandedness[i];
-      const handLabel = handMeta.label;
-      
       const handState = state.hands[i];
       handState.isDetected = true;
       
@@ -71,7 +87,7 @@ export function onResults(results) {
       handState.targetCursor.x = (1 - pointerJoint.x) * window.innerWidth;
       handState.targetCursor.y = pointerJoint.y * window.innerHeight;
       
-      handState.isFistActive = detectFist(landmarks, handLabel);
+      updateFistState(handState, landmarks);
       drawHandSkeleton(landmarks, i, handState.isFistActive);
     }
   } else {
@@ -125,33 +141,123 @@ export function drawHandSkeleton(landmarks, handIdx, isFistActive) {
   }
 }
 
-export function initMediaPipe() {
-  const hands = new Hands({
-    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-  });
-  
-  hands.setOptions({
-    maxNumHands: 2,
-    modelComplexity: 1,
-    minDetectionConfidence: 0.6,
-    minTrackingConfidence: 0.6
-  });
-  
-  hands.onResults(onResults);
-  
-  const camera = new Camera(elWebcam, {
-    onFrame: async () => {
-      await hands.send({ image: elWebcam });
-    },
-    width: 640,
-    height: 480
-  });
-  
-  camera.start()
-    .then(() => {
-      console.log('Camera started successfully.');
-    })
-    .catch((err) => {
-      console.error('Camera startup failed', err);
+function enqueueMediaPipeLifecycle(operation) {
+  const nextOperation = mediaPipeLifecycleQueue.then(operation, operation);
+  mediaPipeLifecycleQueue = nextOperation.catch(() => undefined);
+  return nextOperation;
+}
+
+function resetMediaPipeUi() {
+  state.hands.forEach(resetHandState);
+  state.isHandDetected = false;
+  elHandsDetectedText.textContent = '手が見つかりません';
+  clearCameraUnavailable();
+  ctx.clearRect(0, 0, elCanvas.width, elCanvas.height);
+}
+
+async function safelyStopResource(stop, label) {
+  if (!stop) return;
+  try {
+    await stop();
+  } catch (error) {
+    console.warn(`${label} cleanup failed`, error);
+  }
+}
+
+function stopVideoTracks() {
+  const stream = elWebcam.srcObject;
+  if (stream?.getTracks) {
+    stream.getTracks().forEach((track) => {
+      try {
+        track.stop();
+      } catch (error) {
+        console.warn('Camera track cleanup failed', error);
+      }
     });
+  }
+  elWebcam.srcObject = null;
+}
+
+async function stopActiveMediaPipe() {
+  const active = activeMediaPipe;
+  if (!active) {
+    resetMediaPipeUi();
+    return;
+  }
+
+  active.stopping = true;
+  activeMediaPipe = null;
+  if (mediaPipeCamera === active.camera) mediaPipeCamera = null;
+  if (mediaPipeHands === active.hands) mediaPipeHands = null;
+
+  const startWasPending = !active.startSettled;
+  await safelyStopResource(active.camera.stop?.bind(active.camera), 'Camera');
+  await active.startPromise.catch(() => undefined);
+  if (startWasPending) {
+    await safelyStopResource(active.camera.stop?.bind(active.camera), 'Camera');
+  }
+  stopVideoTracks();
+  await safelyStopResource(active.hands.close?.bind(active.hands), 'Hands');
+  resetMediaPipeUi();
+}
+
+export function initMediaPipe() {
+  return enqueueMediaPipeLifecycle(async () => {
+    await stopActiveMediaPipe();
+
+    let hands = null;
+    let camera = null;
+    try {
+      hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`
+      });
+      hands.setOptions({
+        maxNumHands: 2,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.6,
+        minTrackingConfidence: 0.6
+      });
+      hands.onResults(onResults);
+
+      camera = new Camera(elWebcam, {
+        onFrame: async () => {
+          await hands.send({ image: elWebcam });
+        },
+        width: 640,
+        height: 480
+      });
+      const active = { hands, camera, startPromise: null, startSettled: false, stopping: false };
+      activeMediaPipe = active;
+      mediaPipeHands = hands;
+      mediaPipeCamera = camera;
+      active.startPromise = Promise.resolve().then(() => camera.start());
+      active.startPromise.then(
+        () => {
+          active.startSettled = true;
+          if (activeMediaPipe === active && !active.stopping) {
+            clearCameraUnavailable();
+            console.log('Camera started successfully.');
+          }
+        },
+        (error) => {
+          active.startSettled = true;
+          if (activeMediaPipe === active && !active.stopping) {
+            setCameraUnavailable();
+            console.error('Camera startup failed', error);
+          }
+        }
+      );
+    } catch (error) {
+      await safelyStopResource(camera?.stop?.bind(camera), 'Camera');
+      stopVideoTracks();
+      await safelyStopResource(hands?.close?.bind(hands), 'Hands');
+      resetMediaPipeUi();
+      setCameraUnavailable();
+      console.error('Camera startup failed', error);
+    }
+  });
+}
+
+export function stopMediaPipe() {
+  return enqueueMediaPipeLifecycle(stopActiveMediaPipe);
 }

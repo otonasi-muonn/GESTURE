@@ -1,7 +1,6 @@
 import { state, elWebcam, elBtnCameraToggle } from './state.js';
-import { playHoverSound, playClapSound } from './audio.js';
+import { initAudio, playHoverSound, playClapSound } from './audio.js';
 import { selectCategory, toggleWordSolved, transitionTo, resetCurrentRound } from './ui.js';
-import { initAudio } from './audio.js';
 
 // ポンダー位置のスムージング(Lerp)ループ
 export function updateCursorSmoothLoop() {
@@ -46,7 +45,7 @@ export function processHoverAndGrab(handIdx, elCursor) {
   let interactiveEl = null;
   
   if (target) {
-    interactiveEl = target.closest('.category-card, .word-card, .btn-back, .btn, .btn-icon, .btn-take-control');
+    interactiveEl = target.closest('.category-card, .word-card, .btn-back, .btn, .btn-icon');
   }
   
   if (interactiveEl) {
@@ -104,6 +103,7 @@ export function triggerSelectAction(element) {
     const wordIdx = element.dataset.index;
     toggleWordSolved(wordIdx);
   } else if (element.id === 'btn-back-manual' || element.classList.contains('btn-back')) {
+    if (state.syncRole === 'viewer') return;
     playClapSound();
     transitionTo('HOME');
   } else if (element.id === 'btn-reset-round') {
